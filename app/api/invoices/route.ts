@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     : 0
   const number = formatInvoiceNumber(year, lastSeq + 1)
 
-  const invoice = await prisma.$transaction(async (tx) => {
+  const invoice = await prisma.$transaction(async (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => {
     const inv = await tx.invoice.create({
       data: {
         number,
