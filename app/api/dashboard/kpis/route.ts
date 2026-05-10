@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
   ])
 
   const caMonth = Number(monthPayments._sum.amount ?? 0)
-  const pendingTotal = pendingInvoices.reduce((sum, inv) => {
-    const paid = inv.payments.reduce((s, p) => s + Number(p.amount), 0)
+  const pendingTotal = pendingInvoices.reduce((sum: number, inv) => {
+    const paid = inv.payments.reduce((s: number, p) => s + Number(p.amount), 0)
     return sum + Number(inv.totalTTC) - paid
   }, 0)
 
