@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         },
         order: invoice.order
           ? {
-              items: invoice.order.items.map((item) => ({
+              items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown }) => ({
                 designation: item.designation,
                 sizeS: item.sizeS,
                 sizeM: item.sizeM,
