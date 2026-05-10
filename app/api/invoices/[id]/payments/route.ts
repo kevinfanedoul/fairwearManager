@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     },
   })
 
-  const totalPaid = invoice.payments.reduce((sum, p) => sum + Number(p.amount), 0) + parsed.data.amount
+  const totalPaid = invoice.payments.reduce((sum: number, p: { amount: unknown }) => sum + Number(p.amount), 0) + parsed.data.amount
   const totalTTC = Number(invoice.totalTTC)
   const newStatus = totalPaid >= totalTTC ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'PENDING'
 
