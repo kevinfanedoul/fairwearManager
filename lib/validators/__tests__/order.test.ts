@@ -22,3 +22,21 @@ describe('orderItemSchema', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('orderSchema', () => {
+  it('accepts browser date input for deadline', () => {
+    const result = orderSchema.safeParse({
+      clientId: '550e8400-e29b-41d4-a716-446655440000',
+      deadline: '2026-05-20',
+      items: [
+        {
+          designation: 'T-shirt blanc',
+          quantity: 10,
+          unitPrice: 25,
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+  })
+})
