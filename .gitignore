@@ -42,3 +42,8 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# données clients sensibles (import Excel)
+prisma/seed-data.ts
+prisma/import-data.ts
+SUIVI COMMANDES CLIENTS*.xlsx
