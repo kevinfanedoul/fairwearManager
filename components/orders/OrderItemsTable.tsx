@@ -26,7 +26,7 @@ export function OrderItemsTable() {
   function lineTotal(index: number) {
     const item = items[index]
     if (!item) return 0
-    return Math.round(item.quantity * (item.unitPrice ?? 0) * 100) / 100
+    return Math.round((item.quantity ?? 0) * (item.unitPrice ?? 0) * 100) / 100
   }
 
   const totalHT = items.reduce((sum, item, i) => sum + lineTotal(i), 0)

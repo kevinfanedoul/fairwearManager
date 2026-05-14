@@ -4,7 +4,7 @@ import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { orderSchema, type OrderInput } from '@/lib/validators/order'
+import { orderSchema, type OrderData, type OrderInput } from '@/lib/validators/order'
 import { OrderItemsTable } from './OrderItemsTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,7 +26,7 @@ export function OrderForm() {
     },
   })
 
-  const form = useForm<OrderInput>({
+  const form = useForm<OrderInput, undefined, OrderData>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
       clientId: preselectedClientId,
@@ -45,7 +45,7 @@ export function OrderForm() {
     return client ? clientLabel(client) : clientId
   }
 
-  async function onSubmit(data: OrderInput) {
+  async function onSubmit(data: OrderData) {
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

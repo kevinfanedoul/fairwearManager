@@ -19,5 +19,7 @@ export const orderSchema = z.object({
   items: z.array(orderItemSchema).min(1, 'Au moins une ligne requise'),
 })
 
-export type OrderItemInput = z.infer<typeof orderItemSchema>
-export type OrderInput = z.infer<typeof orderSchema>
+export type OrderItemInput = z.input<typeof orderItemSchema>
+export type OrderItemData = z.output<typeof orderItemSchema>
+export type OrderInput = z.input<typeof orderSchema>
+export type OrderData = z.output<typeof orderSchema>
