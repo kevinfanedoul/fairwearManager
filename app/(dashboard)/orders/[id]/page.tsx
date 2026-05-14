@@ -7,9 +7,10 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ORDER_STATUS_LABELS } from '@/types'
+import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { Check, Download } from 'lucide-react'
 
 type OrderItemView = {
   id: string
@@ -22,6 +23,27 @@ type OrderItemView = {
   quantity: number
   unitPrice: number
   totalPrice: number
+}
+
+const workflowSteps: OrderStatus[] = [
+  'QUOTE',
+  'CONFIRMED',
+  'INVOICED',
+  'PAID',
+]
+
+function stepState(currentStatus: OrderStatus, step: OrderStatus) {
+  if (currentStatus === 'CANCELLED') {
+    return step === 'QUOTE' ? 'done' : 'upcoming'
+  }
+
+  const currentIndex = workflowSteps.indexOf(currentStatus)
+  const stepIndex = workflowSteps.indexOf(step)
+
+  if (currentIndex === -1 || stepIndex === -1) return 'upcoming'
+  if (stepIndex < currentIndex) return 'done'
+  if (stepIndex === currentIndex) return 'current'
+  return 'upcoming'
 }
 
 export default function OrderDetailPage() {
@@ -69,6 +91,22 @@ export default function OrderDetailPage() {
     },
   })
 
+  const cancelQuoteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      })
+      if (!res.ok) throw new Error('Erreur annulation')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+  })
+
   if (isLoading) return <div className="text-slate-500">Chargement…</div>
   if (!order) return <div className="text-red-600">Commande introuvable</div>
 
@@ -76,17 +114,25 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">{order.reference}</h1>
           <p className="text-slate-500">{clientName}</p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           <StatusBadge label={ORDER_STATUS_LABELS[order.status as keyof typeof ORDER_STATUS_LABELS]} variant="info" />
+          <a href={`/api/orders/${id}/pdf`} className={buttonVariants({ variant: 'outline' })}>
+            <Download size={16} className="mr-2" />Télécharger PDF
+          </a>
           {order.status === 'QUOTE' && (
-            <Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
-              {confirmMutation.isPending ? 'Confirmation…' : 'Confirmer la commande'}
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => cancelQuoteMutation.mutate()} disabled={cancelQuoteMutation.isPending || confirmMutation.isPending}>
+                {cancelQuoteMutation.isPending ? 'Annulation…' : 'Annuler le devis'}
+              </Button>
+              <Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending || cancelQuoteMutation.isPending}>
+                {confirmMutation.isPending ? 'Confirmation…' : 'Confirmer la commande'}
+              </Button>
+            </>
           )}
           {order.status === 'CONFIRMED' && !order.invoice && (
             <Button onClick={() => createInvoiceMutation.mutate()} disabled={createInvoiceMutation.isPending}>
@@ -100,6 +146,81 @@ export default function OrderDetailPage() {
           )}
         </div>
       </div>
+
+      <Card className="overflow-hidden border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100/70">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Timeline du workflow</CardTitle>
+              <p className="mt-1 text-sm text-slate-500">
+                Suivi du devis depuis l&apos;émission jusqu&apos;à la facturation et au règlement.
+              </p>
+            </div>
+            {order.status === 'CANCELLED' && (
+              <div className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
+                Devis annulé avant confirmation
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto pb-5">
+          <div className="flex min-w-max items-start gap-0">
+            {workflowSteps.map((step, index) => {
+              const state = stepState(order.status as OrderStatus, step)
+              const isLast = index === workflowSteps.length - 1
+
+              return (
+                <div key={step} className="flex items-start">
+                  <div className="flex w-32 flex-col items-center text-center">
+                    <div
+                      className={[
+                        'flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold transition-colors',
+                        state === 'done' ? 'border-emerald-600 bg-emerald-600 text-white' : '',
+                        state === 'current' ? 'border-slate-900 bg-slate-900 text-white ring-4 ring-slate-200' : '',
+                        state === 'upcoming' ? 'border-slate-200 bg-white text-slate-400' : '',
+                      ].join(' ')}
+                    >
+                      {state === 'done' ? <Check size={18} /> : index + 1}
+                    </div>
+                    <div className="mt-3 text-sm font-medium text-slate-900">
+                      {ORDER_STATUS_LABELS[step]}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      {state === 'done' ? 'Terminée' : state === 'current' ? 'Étape en cours' : 'À venir'}
+                    </div>
+                  </div>
+                  {!isLast && (
+                    <div className="mt-5 h-[2px] w-12 shrink-0 rounded-full bg-slate-200">
+                      <div
+                        className={[
+                          'h-full rounded-full',
+                          state === 'done' ? 'bg-emerald-500' : 'bg-slate-200',
+                        ].join(' ')}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {order.status === 'CANCELLED' && (
+              <div className="flex items-start">
+                <div className="mt-5 h-[2px] w-12 shrink-0 rounded-full bg-red-200" />
+                <div className="flex w-32 flex-col items-center text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-red-600 bg-red-600 text-sm font-semibold text-white ring-4 ring-red-100">
+                    ×
+                  </div>
+                  <div className="mt-3 text-sm font-medium text-red-700">
+                    Annulé
+                  </div>
+                  <div className="mt-1 text-xs text-red-400">
+                    Workflow interrompu
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 gap-4">
         <Card>

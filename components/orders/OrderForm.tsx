@@ -7,11 +7,11 @@ import { useQuery } from '@tanstack/react-query'
 import { orderSchema, type OrderData, type OrderInput } from '@/lib/validators/order'
 import { OrderItemsTable } from './OrderItemsTable'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 
 export function OrderForm() {
   const router = useRouter()
@@ -99,7 +99,13 @@ export function OrderForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date limite de livraison</FormLabel>
-                    <FormControl><Input {...field} value={field.value ?? ''} type="date" /></FormControl>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        placeholder="Choisir une date de livraison"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

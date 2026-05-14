@@ -40,6 +40,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Données invalides' }, { status: 400 })
   }
 
+  const existingOrder = await prisma.order.findUnique({
+    where: { id },
+    select: { status: true },
+  })
+
+  if (!existingOrder) {
+    return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 })
+  }
+
+  if (parsed.data.status === 'CANCELLED' && existingOrder.status !== 'QUOTE') {
+    return NextResponse.json({ error: 'Seul un devis non confirmé peut être annulé' }, { status: 400 })
+  }
+
   const order = await prisma.order.update({
     where: { id },
     data: {
