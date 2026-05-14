@@ -78,7 +78,7 @@ export default function OrdersPage() {
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Client</p>
-          <Select onValueChange={(value) => setSelectedClientId(value === ALL_FILTER_VALUE ? '' : value)} value={selectedClientId || ALL_FILTER_VALUE}>
+          <Select onValueChange={(value) => setSelectedClientId(value && value !== ALL_FILTER_VALUE ? value : '')} value={selectedClientId || ALL_FILTER_VALUE}>
             <SelectTrigger className="w-full">
               {selectedClientId
                 ? clientLabel(clientsData?.clients.find((client) => client.id === selectedClientId) ?? { id: '', company: null, firstName: null, lastName: null })
@@ -95,7 +95,7 @@ export default function OrdersPage() {
 
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Statut</p>
-          <Select onValueChange={(value) => setSelectedStatus(value === ALL_FILTER_VALUE ? '' : value)} value={selectedStatus || ALL_FILTER_VALUE}>
+          <Select onValueChange={(value) => setSelectedStatus(value && value !== ALL_FILTER_VALUE ? value : '')} value={selectedStatus || ALL_FILTER_VALUE}>
             <SelectTrigger className="w-full">
               {selectedStatus
                 ? ORDER_STATUS_LABELS[selectedStatus as keyof typeof ORDER_STATUS_LABELS]
