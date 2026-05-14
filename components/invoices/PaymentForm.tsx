@@ -18,13 +18,16 @@ interface PaymentFormProps {
 
 export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFormProps) {
   const queryClient = useQueryClient()
+  const defaultValues: PaymentInput = {
+    date: new Date().toISOString(),
+    amount: remainingAmount,
+    method: 'CASH',
+    reference: '',
+  }
+
   const form = useForm<PaymentInput>({
-    resolver: zodResolver(paymentSchema) as any,
-    defaultValues: {
-      date: new Date().toISOString(),
-      amount: remainingAmount,
-      method: 'CASH',
-    },
+    resolver: zodResolver(paymentSchema),
+    defaultValues,
   })
 
   async function onSubmit(data: PaymentInput) {
@@ -38,8 +41,12 @@ export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFo
       return
     }
     queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] })
-    form.reset()
+    form.reset(defaultValues)
     onSuccess?.()
+  }
+
+  function paymentMethodLabel(method: PaymentInput['method']) {
+    return PAYMENT_METHOD_LABELS[method]
   }
 
   return (
@@ -71,8 +78,12 @@ export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFo
           <FormField control={form.control} name="method" render={({ field }) => (
             <FormItem>
               <FormLabel>Mode de règlement</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+              <Select onValueChange={field.onChange} value={field.value ?? 'CASH'}>
+                <FormControl>
+                  <SelectTrigger>
+                    {field.value ? paymentMethodLabel(field.value) : <SelectValue placeholder="Sélectionner un mode" />}
+                  </SelectTrigger>
+                </FormControl>
                 <SelectContent>
                   {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
@@ -85,7 +96,7 @@ export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFo
           <FormField control={form.control} name="reference" render={({ field }) => (
             <FormItem>
               <FormLabel>Référence (virement…)</FormLabel>
-              <FormControl><Input {...field} /></FormControl>
+              <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />

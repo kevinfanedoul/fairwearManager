@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { type InvoiceStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { createCashEntry } from '@/lib/treasury/create-cash-entry'
 import { paymentSchema } from '@/lib/validators/invoice'
 import { createClient } from '@/lib/supabase/server'
 
@@ -17,31 +19,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { payments: true },
+    include: { payments: true, client: true },
   })
   if (!invoice) return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
 
-  const payment = await prisma.payment.create({
-    data: {
-      invoiceId: id,
-      date: new Date(parsed.data.date),
-      amount: parsed.data.amount,
-      method: parsed.data.method,
-      reference: parsed.data.reference,
-      notes: parsed.data.notes,
-    },
-  })
-
   const totalPaid = invoice.payments.reduce((sum: number, p: { amount: unknown }) => sum + Number(p.amount), 0) + parsed.data.amount
   const totalTTC = Number(invoice.totalTTC)
-  const newStatus = totalPaid >= totalTTC ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'PENDING'
+  const newStatus: InvoiceStatus = totalPaid >= totalTTC ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'PENDING'
 
-  await prisma.$transaction([
-    prisma.invoice.update({ where: { id }, data: { status: newStatus as any } }),
-    ...(newStatus === 'PAID' && invoice.orderId
-      ? [prisma.order.update({ where: { id: invoice.orderId }, data: { status: 'PAID' } })]
-      : []),
-  ])
+  const payment = await prisma.$transaction(async (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => {
+    const createdPayment = await tx.payment.create({
+      data: {
+        invoiceId: id,
+        date: new Date(parsed.data.date),
+        amount: parsed.data.amount,
+        method: parsed.data.method,
+        reference: parsed.data.reference,
+        notes: parsed.data.notes,
+      },
+    })
+
+    await tx.invoice.update({ where: { id }, data: { status: newStatus } })
+
+    if (newStatus === 'PAID' && invoice.orderId) {
+      await tx.order.update({ where: { id: invoice.orderId }, data: { status: 'PAID' } })
+    }
+
+    await createCashEntry(tx, {
+      date: new Date(parsed.data.date),
+      label: `Paiement facture ${invoice.number} - ${invoice.client.company || [invoice.client.firstName, invoice.client.lastName].filter(Boolean).join(' ') || 'Client sans nom'}`,
+      amount: parsed.data.amount,
+      type: 'INCOME',
+      category: 'Encaissement client',
+      reference: parsed.data.reference || invoice.number,
+    })
+
+    return createdPayment
+  })
 
   return NextResponse.json(payment, { status: 201 })
 }

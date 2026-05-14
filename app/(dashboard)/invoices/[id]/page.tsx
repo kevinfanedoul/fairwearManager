@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { PaymentForm } from '@/components/invoices/PaymentForm'
@@ -13,6 +13,14 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+
+type PaymentView = {
+  id: string
+  date: string
+  amount: number
+  method: keyof typeof PAYMENT_METHOD_LABELS
+  reference: string | null
+}
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -30,7 +38,7 @@ export default function InvoiceDetailPage() {
   if (isLoading) return <div className="text-slate-500">Chargement…</div>
   if (!invoice) return <div className="text-red-600">Facture introuvable</div>
 
-  const totalPaid = invoice.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) ?? 0
+  const totalPaid = invoice.payments?.reduce((sum: number, payment: PaymentView) => sum + Number(payment.amount), 0) ?? 0
   const remaining = Number(invoice.totalTTC) - totalPaid
   const clientName = invoice.client?.company || [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(' ')
 
@@ -43,15 +51,20 @@ export default function InvoiceDetailPage() {
         </div>
         <div className="flex gap-2 items-center">
           <StatusBadge label={INVOICE_STATUS_LABELS[invoice.status as keyof typeof INVOICE_STATUS_LABELS]} variant="info" />
-          <a href={`/api/invoices/${id}/pdf`} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline">
-              <Download size={16} className="mr-2" />Télécharger PDF
-            </Button>
+          <a
+            href={`/api/invoices/${id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            <Download size={16} className="mr-2" />Télécharger PDF
           </a>
           {remaining > 0 && (
             <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
-              <DialogTrigger>
-                <Button><Plus size={16} className="mr-2" />Enregistrer un paiement</Button>
+              <DialogTrigger
+                render={<button className={buttonVariants({ variant: 'default' })} />}
+              >
+                <Plus size={16} className="mr-2" />Enregistrer un paiement
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Enregistrer un paiement</DialogTitle></DialogHeader>
@@ -97,7 +110,7 @@ export default function InvoiceDetailPage() {
             <table className="w-full text-sm">
               <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Date</th><th className="text-left pb-2">Mode</th><th className="text-left pb-2">Référence</th><th className="text-right pb-2">Montant</th></tr></thead>
               <tbody>
-                {invoice.payments.map((payment: any) => (
+                {invoice.payments.map((payment: PaymentView) => (
                   <tr key={payment.id} className="border-b last:border-0">
                     <td className="py-2">{format(new Date(payment.date), 'dd/MM/yyyy', { locale: fr })}</td>
                     <td>{PAYMENT_METHOD_LABELS[payment.method as keyof typeof PAYMENT_METHOD_LABELS]}</td>

@@ -1,8 +1,9 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,8 +11,22 @@ import { ORDER_STATUS_LABELS } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+type OrderItemView = {
+  id: string
+  designation: string
+  sizeS: number
+  sizeM: number
+  sizeL: number
+  sizeXL: number
+  sizeTU: number
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const queryClient = useQueryClient()
 
   const { data: order, isLoading } = useQuery({
@@ -32,6 +47,28 @@ export default function OrderDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['order', id] }),
   })
 
+  const createInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: id,
+          dueDate: '',
+          applyStampDuty: false,
+          notes: '',
+        }),
+      })
+      if (!res.ok) throw new Error('Erreur création facture')
+      return res.json()
+    },
+    onSuccess: (invoice) => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      router.push(`/invoices/${invoice.id}`)
+    },
+  })
+
   if (isLoading) return <div className="text-slate-500">Chargement…</div>
   if (!order) return <div className="text-red-600">Commande introuvable</div>
 
@@ -50,6 +87,16 @@ export default function OrderDetailPage() {
             <Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
               {confirmMutation.isPending ? 'Confirmation…' : 'Confirmer la commande'}
             </Button>
+          )}
+          {order.status === 'CONFIRMED' && !order.invoice && (
+            <Button onClick={() => createInvoiceMutation.mutate()} disabled={createInvoiceMutation.isPending}>
+              {createInvoiceMutation.isPending ? 'Création de la facture…' : 'Créer la facture'}
+            </Button>
+          )}
+          {order.invoice && (
+            <Link href={`/invoices/${order.invoice.id}`} className={buttonVariants({ variant: 'outline' })}>
+              Voir la facture
+            </Link>
           )}
         </div>
       </div>
@@ -79,7 +126,7 @@ export default function OrderDetailPage() {
           <table className="w-full text-sm">
             <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Désignation</th><th className="text-center pb-2">S</th><th className="text-center pb-2">M</th><th className="text-center pb-2">L</th><th className="text-center pb-2">XL</th><th className="text-center pb-2">TU</th><th className="text-center pb-2">Qté</th><th className="text-right pb-2">Prix unit.</th><th className="text-right pb-2">Total</th></tr></thead>
             <tbody>
-              {order.items?.map((item: any) => (
+              {order.items?.map((item: OrderItemView) => (
                 <tr key={item.id} className="border-b last:border-0">
                   <td className="py-2">{item.designation}</td>
                   <td className="text-center">{item.sizeS || '—'}</td>

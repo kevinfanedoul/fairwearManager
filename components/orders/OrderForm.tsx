@@ -27,15 +27,22 @@ export function OrderForm() {
   })
 
   const form = useForm<OrderInput>({
-    resolver: zodResolver(orderSchema) as any,
+    resolver: zodResolver(orderSchema),
     defaultValues: {
       clientId: preselectedClientId,
+      deadline: '',
+      notes: '',
       items: [{ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 }],
     },
   })
 
   function clientLabel(c: { company: string | null; firstName: string | null; lastName: string | null }) {
-    return c.company || [c.firstName, c.lastName].filter(Boolean).join(' ')
+    return c.company || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Client sans nom'
+  }
+
+  function clientLabelById(clientId: string) {
+    const client = clientsData?.clients.find((c) => c.id === clientId)
+    return client ? clientLabel(client) : clientId
   }
 
   async function onSubmit(data: OrderInput) {
@@ -70,10 +77,10 @@ export function OrderForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un client" />
+                          {field.value ? clientLabelById(field.value) : <SelectValue placeholder="Sélectionner un client" />}
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -92,7 +99,7 @@ export function OrderForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date limite de livraison</FormLabel>
-                    <FormControl><Input {...field} type="date" /></FormControl>
+                    <FormControl><Input {...field} value={field.value ?? ''} type="date" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -103,7 +110,7 @@ export function OrderForm() {
                 render={({ field }) => (
                   <FormItem className="col-span-2">
                     <FormLabel>Notes</FormLabel>
-                    <FormControl><Textarea {...field} rows={2} /></FormControl>
+                    <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

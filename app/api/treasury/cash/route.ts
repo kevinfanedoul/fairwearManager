@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createCashEntry } from '@/lib/treasury/create-cash-entry'
 import { cashEntrySchema } from '@/lib/validators/cash'
 import { createClient } from '@/lib/supabase/server'
 
@@ -34,22 +35,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const lastEntry = await prisma.cashEntry.findFirst({ orderBy: { date: 'desc' } })
-  const previousBalance = lastEntry ? Number(lastEntry.balance) : 0
-  const delta = parsed.data.type === 'INCOME' ? parsed.data.amount : -parsed.data.amount
-  const balance = Math.round((previousBalance + delta) * 100) / 100
-
-  const entry = await prisma.cashEntry.create({
-    data: {
+  const entry = await prisma.$transaction(async (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) =>
+    createCashEntry(tx, {
       date: new Date(parsed.data.date),
       label: parsed.data.label,
       amount: parsed.data.amount,
       type: parsed.data.type,
       category: parsed.data.category,
       reference: parsed.data.reference,
-      balance,
-    },
-  })
+    })
+  )
 
   return NextResponse.json(entry, { status: 201 })
 }

@@ -8,11 +8,20 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Trash2, Plus } from 'lucide-react'
 import type { OrderInput } from '@/lib/validators/order'
 
+const sizeFields = ['sizeS', 'sizeM', 'sizeL', 'sizeXL', 'sizeTU'] as const
+
 export function OrderItemsTable() {
-  const { control, watch } = useFormContext<OrderInput>()
+  const { control, watch, setValue } = useFormContext<OrderInput>()
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
   const items = watch('items')
+
+  function quantityFromSizes(index: number) {
+    const item = items[index]
+    if (!item) return 0
+
+    return sizeFields.reduce((sum, size) => sum + (item[size] ?? 0), 0)
+  }
 
   function lineTotal(index: number) {
     const item = items[index]
@@ -50,16 +59,26 @@ export function OrderItemsTable() {
                     <FormItem><FormControl><Input {...field} placeholder="T-shirt blanc" /></FormControl><FormMessage /></FormItem>
                   )} />
                 </td>
-                {(['sizeS', 'sizeM', 'sizeL', 'sizeXL', 'sizeTU'] as const).map((size) => (
+                {sizeFields.map((size) => (
                   <td key={size} className="py-2 px-2">
                     <FormField control={control} name={`items.${index}.${size}`} render={({ field }) => (
-                      <FormItem><FormControl><Input {...field} type="number" min="0" className="w-14 text-center" onChange={e => field.onChange(parseInt(e.target.value) || 0)} /></FormControl></FormItem>
+                      <FormItem><FormControl><Input {...field} type="number" min="0" className="w-14 text-center" onChange={e => {
+                        const nextValue = parseInt(e.target.value) || 0
+                        field.onChange(nextValue)
+
+                        const nextQuantity = sizeFields.reduce((sum, currentSize) => {
+                          const sizeValue = currentSize === size ? nextValue : (items[index]?.[currentSize] ?? 0)
+                          return sum + sizeValue
+                        }, 0)
+
+                        setValue(`items.${index}.quantity`, nextQuantity, { shouldDirty: true, shouldValidate: true })
+                      }} /></FormControl></FormItem>
                     )} />
                   </td>
                 ))}
                 <td className="py-2 px-2">
                   <FormField control={control} name={`items.${index}.quantity`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} type="number" min="0" className="w-16 text-center" onChange={e => field.onChange(parseInt(e.target.value) || 0)} /></FormControl></FormItem>
+                    <FormItem><FormControl><Input {...field} value={quantityFromSizes(index)} type="number" min="0" readOnly className="w-16 text-center bg-slate-50 text-slate-600" /></FormControl></FormItem>
                   )} />
                 </td>
                 <td className="py-2 px-2">
