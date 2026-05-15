@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatCurrency, type OrderCurrency } from '@/lib/currencies'
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica', color: '#1e293b' },
@@ -38,10 +39,6 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: '#94a3b8' },
 })
 
-function formatMAD(amount: number) {
-  return `${new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} MAD`
-}
-
 type OrderPDFItem = {
   designation: string
   sizeS: number
@@ -62,6 +59,7 @@ type OrderPDFProps = {
     notes?: string | null
     totalHT: number
     totalTTC: number
+    currency: OrderCurrency
     client: {
       company?: string | null
       firstName?: string | null
@@ -136,8 +134,8 @@ export function OrderPDF({ order }: OrderPDFProps) {
               <Text style={styles.colDesignation}>{item.designation}</Text>
               <Text style={[styles.colSizes, { fontSize: 8 }]}>{sizes(item)}</Text>
               <Text style={styles.colQty}>{item.quantity}</Text>
-              <Text style={styles.colPrice}>{formatMAD(item.unitPrice)}</Text>
-              <Text style={styles.colTotal}>{formatMAD(item.totalPrice)}</Text>
+              <Text style={styles.colPrice}>{formatCurrency(item.unitPrice, order.currency)}</Text>
+              <Text style={styles.colTotal}>{formatCurrency(item.totalPrice, order.currency)}</Text>
             </View>
           ))}
         </View>
@@ -146,15 +144,15 @@ export function OrderPDF({ order }: OrderPDFProps) {
           <View style={styles.totalsBox}>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Total HT</Text>
-              <Text style={styles.totalsValue}>{formatMAD(order.totalHT)}</Text>
+              <Text style={styles.totalsValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
             </View>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>TVA 20%</Text>
-              <Text style={styles.totalsValue}>{formatMAD(tvaAmount)}</Text>
+              <Text style={styles.totalsValue}>{formatCurrency(tvaAmount, order.currency)}</Text>
             </View>
             <View style={styles.totalsTTCRow}>
               <Text style={styles.totalsTTCLabel}>Total TTC</Text>
-              <Text style={styles.totalsTTCValue}>{formatMAD(order.totalTTC)}</Text>
+              <Text style={styles.totalsTTCValue}>{formatCurrency(order.totalTTC, order.currency)}</Text>
             </View>
           </View>
         </View>

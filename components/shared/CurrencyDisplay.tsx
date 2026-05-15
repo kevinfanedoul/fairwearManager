@@ -1,13 +1,12 @@
+import type { OrderCurrency } from '@/lib/currencies'
+import { formatCurrency } from '@/lib/currencies'
+
 interface CurrencyDisplayProps {
   amount: number | string
+  currency?: OrderCurrency
   className?: string
 }
 
-export function CurrencyDisplay({ amount, className }: CurrencyDisplayProps) {
-  const formatted = new Intl.NumberFormat('fr-MA', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(amount))
-
-  return <span className={className}>{formatted} MAD</span>
+export function CurrencyDisplay({ amount, currency = 'MAD', className }: CurrencyDisplayProps) {
+  return <span className={className}>{formatCurrency(amount, currency)}</span>
 }

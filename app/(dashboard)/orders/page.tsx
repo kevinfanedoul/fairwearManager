@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { FilterX, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, FilterX, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -29,8 +29,12 @@ type OrderView = {
   orderDate: string
   deadline: string | null
   totalTTC: number
+  currency: 'MAD' | 'EUR' | 'GBP' | 'USD'
   client: ClientOption
 }
+
+type SortField = 'reference' | 'client' | 'status' | 'date' | 'deadline' | 'totalTTC'
+type SortOrder = 'asc' | 'desc'
 
 function clientLabel(client: ClientOption) {
   return client.company || [client.firstName, client.lastName].filter(Boolean).join(' ') || 'Client sans nom'
@@ -39,14 +43,18 @@ function clientLabel(client: ClientOption) {
 export default function OrdersPage() {
   const [selectedClientId, setSelectedClientId] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
+  const [sortBy, setSortBy] = useState<SortField>('date')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   const queryParams = new URLSearchParams()
   if (selectedClientId) queryParams.set('clientId', selectedClientId)
   if (selectedStatus) queryParams.set('status', selectedStatus)
+  queryParams.set('sortBy', sortBy)
+  queryParams.set('sortOrder', sortOrder)
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ''
 
   const { data: orders = [], isLoading } = useQuery<OrderView[]>({
-    queryKey: ['orders', selectedClientId, selectedStatus],
+    queryKey: ['orders', selectedClientId, selectedStatus, sortBy, sortOrder],
     queryFn: async () => {
       const res = await fetch(`/api/orders${queryString}`)
       if (!res.ok) throw new Error('Erreur')
@@ -66,6 +74,35 @@ export default function OrdersPage() {
   function resetFilters() {
     setSelectedClientId('')
     setSelectedStatus('')
+  }
+
+  function toggleSort(field: SortField) {
+    if (sortBy === field) {
+      setSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortBy(field)
+    setSortOrder(field === 'date' || field === 'deadline' || field === 'totalTTC' ? 'desc' : 'asc')
+  }
+
+  function SortIcon({ field }: { field: SortField }) {
+    if (sortBy !== field) return <ArrowUpDown size={14} className="text-slate-400" />
+    if (sortOrder === 'asc') return <ArrowUp size={14} className="text-slate-700" />
+    return <ArrowDown size={14} className="text-slate-700" />
+  }
+
+  function SortHeader({ field, label, align = 'left' }: { field: SortField; label: string; align?: 'left' | 'right' }) {
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSort(field)}
+        className={`inline-flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:bg-slate-100 ${align === 'right' ? 'ml-auto' : ''}`}
+      >
+        <span>{label}</span>
+        <SortIcon field={field} />
+      </button>
+    )
   }
 
   return (
@@ -123,12 +160,12 @@ export default function OrdersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Référence</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Deadline</TableHead>
-                <TableHead className="text-right">Total TTC</TableHead>
+                <TableHead><SortHeader field="reference" label="Référence" /></TableHead>
+                <TableHead><SortHeader field="client" label="Client" /></TableHead>
+                <TableHead><SortHeader field="status" label="Statut" /></TableHead>
+                <TableHead><SortHeader field="date" label="Date" /></TableHead>
+                <TableHead><SortHeader field="deadline" label="Deadline" /></TableHead>
+                <TableHead className="text-right"><SortHeader field="totalTTC" label="Total TTC" align="right" /></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,7 +188,7 @@ export default function OrdersPage() {
                   </TableCell>
                   <TableCell className="text-slate-500">{format(new Date(order.orderDate), 'dd/MM/yyyy', { locale: fr })}</TableCell>
                   <TableCell className="text-slate-500">{order.deadline ? format(new Date(order.deadline), 'dd/MM/yyyy', { locale: fr }) : '—'}</TableCell>
-                  <TableCell className="text-right"><CurrencyDisplay amount={order.totalTTC} /></TableCell>
+                  <TableCell className="text-right"><CurrencyDisplay amount={order.totalTTC} currency={order.currency} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { type OrderStatus } from '@prisma/client'
+import { type OrderStatus, type Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { orderSchema } from '@/lib/validators/order'
 import { calculateOrderTotals } from '@/lib/calculations/invoice'
@@ -14,13 +14,24 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') ?? undefined
   const clientId = searchParams.get('clientId') ?? undefined
+  const sortBy = searchParams.get('sortBy') ?? 'date'
+  const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'
+
+  const orderByMap: Record<string, Prisma.OrderOrderByWithRelationInput[]> = {
+    reference: [{ reference: sortOrder }],
+    client: [{ client: { company: sortOrder } }, { client: { lastName: sortOrder } }],
+    status: [{ status: sortOrder }],
+    date: [{ orderDate: sortOrder }],
+    deadline: [{ deadline: sortOrder }],
+    totalTTC: [{ totalTTC: sortOrder }],
+  }
 
   const orders = await prisma.order.findMany({
     where: {
       ...(status && { status: status as OrderStatus }),
       ...(clientId && { clientId }),
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: orderByMap[sortBy] ?? orderByMap.date,
     include: {
       client: { select: { id: true, company: true, firstName: true, lastName: true } },
       items: true,
@@ -41,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { items, clientId, deadline, notes } = parsed.data
+  const { items, clientId, currency, deadline, notes } = parsed.data
 
   const year = new Date().getFullYear()
   const lastOrder = await prisma.order.findFirst({
@@ -61,6 +72,7 @@ export async function POST(request: NextRequest) {
     data: {
       reference,
       clientId,
+      currency,
       deadline: deadline ? new Date(deadline) : undefined,
       notes,
       totalHT,

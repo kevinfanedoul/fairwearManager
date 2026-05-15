@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
+import { ORDER_CURRENCIES } from '@/lib/currencies'
 import { orderSchema, type OrderData, type OrderInput } from '@/lib/validators/order'
 import { OrderItemsTable } from './OrderItemsTable'
 import { Button } from '@/components/ui/button'
@@ -13,7 +15,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DatePicker } from '@/components/ui/date-picker'
 
-export function OrderForm() {
+type OrderFormProps = {
+  mode?: 'create' | 'edit'
+  orderId?: string
+  initialData?: OrderInput
+}
+
+export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedClientId = searchParams.get('clientId') ?? ''
@@ -29,12 +37,25 @@ export function OrderForm() {
   const form = useForm<OrderInput, undefined, OrderData>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
-      clientId: preselectedClientId,
-      deadline: '',
-      notes: '',
-      items: [{ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 }],
+      clientId: initialData?.clientId ?? preselectedClientId,
+      currency: initialData?.currency ?? 'MAD',
+      deadline: initialData?.deadline ?? '',
+      notes: initialData?.notes ?? '',
+      items: initialData?.items ?? [{ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 }],
     },
   })
+
+  useEffect(() => {
+    if (!initialData) return
+
+    form.reset({
+      clientId: initialData.clientId,
+      currency: initialData.currency ?? 'MAD',
+      deadline: initialData.deadline ?? '',
+      notes: initialData.notes ?? '',
+      items: initialData.items.length > 0 ? initialData.items : [{ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 }],
+    })
+  }, [form, initialData])
 
   function clientLabel(c: { company: string | null; firstName: string | null; lastName: string | null }) {
     return c.company || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Client sans nom'
@@ -46,13 +67,16 @@ export function OrderForm() {
   }
 
   async function onSubmit(data: OrderData) {
-    const res = await fetch('/api/orders', {
-      method: 'POST',
+    const endpoint = mode === 'edit' && orderId ? `/api/orders/${orderId}` : '/api/orders'
+    const method = mode === 'edit' ? 'PUT' : 'POST'
+
+    const res = await fetch(endpoint, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
     if (!res.ok) {
-      form.setError('root', { message: 'Erreur lors de la création' })
+      form.setError('root', { message: mode === 'edit' ? 'Erreur lors de la modification' : 'Erreur lors de la création' })
       return
     }
     const order = await res.json()
@@ -65,12 +89,12 @@ export function OrderForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Nouveau devis</h1>
+            <h1 className="text-2xl font-bold">{mode === 'edit' ? 'Modifier le devis' : 'Nouveau devis'}</h1>
           </div>
 
           <Card>
             <CardHeader><CardTitle>Informations générales</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="clientId"
@@ -79,13 +103,35 @@ export function OrderForm() {
                     <FormLabel>Client</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           {field.value ? clientLabelById(field.value) : <SelectValue placeholder="Sélectionner un client" />}
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {clientsData?.clients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>{clientLabel(c)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Devise du devis</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value ?? 'MAD'}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choisir une devise" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(ORDER_CURRENCIES).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -137,7 +183,9 @@ export function OrderForm() {
 
           <div className="flex gap-3">
             <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Création…' : 'Créer le devis'}
+              {form.formState.isSubmitting
+                ? mode === 'edit' ? 'Enregistrement…' : 'Création…'
+                : mode === 'edit' ? 'Enregistrer les modifications' : 'Créer le devis'}
             </Button>
             <Button type="button" variant="outline" onClick={() => router.back()}>Annuler</Button>
           </div>

@@ -32,6 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         notes: order.notes,
         totalHT: Number(order.totalHT),
         totalTTC: Number(order.totalTTC),
+        currency: order.currency as 'MAD' | 'EUR' | 'GBP' | 'USD',
         client: {
           company: order.client.company,
           firstName: order.client.firstName,

@@ -144,7 +144,7 @@ export default function DashboardPage() {
                     <td className="text-slate-600">{clientName}</td>
                     <td><StatusBadge label={ORDER_STATUS_LABELS[order.status as keyof typeof ORDER_STATUS_LABELS]} variant="muted" /></td>
                     <td className="text-slate-500">{format(new Date(order.orderDate), 'dd/MM/yyyy', { locale: fr })}</td>
-                    <td className="text-right"><CurrencyDisplay amount={order.totalTTC} /></td>
+                    <td className="text-right"><CurrencyDisplay amount={order.totalTTC} currency={order.currency ?? 'MAD'} /></td>
                   </tr>
                 )
               })}

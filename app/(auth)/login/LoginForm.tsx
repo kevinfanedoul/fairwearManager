@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { BrandLogo } from '@/components/layout/BrandLogo'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -35,9 +36,12 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">FairwairManager</CardTitle>
+          <div className="mx-auto mb-2">
+            <BrandLogo className="justify-center" />
+          </div>
+          <CardTitle className="sr-only">Fairwear Manufacture</CardTitle>
           <CardDescription>Connectez-vous à votre espace</CardDescription>
         </CardHeader>
         <CardContent>

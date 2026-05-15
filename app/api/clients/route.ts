@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { clientSchema } from '@/lib/validators/client'
 import { createClient } from '@/lib/supabase/server'
@@ -13,6 +14,8 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') ?? undefined
   const page = parseInt(searchParams.get('page') ?? '1')
   const limit = parseInt(searchParams.get('limit') ?? '50')
+  const sortBy = searchParams.get('sortBy') ?? 'name'
+  const sortOrder = searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc'
 
   const where = {
     active: true,
@@ -27,10 +30,20 @@ export async function GET(request: NextRequest) {
     }),
   }
 
+  const orderByMap: Record<string, Prisma.ClientOrderByWithRelationInput[]> = {
+    name: [{ company: sortOrder }, { lastName: sortOrder }, { firstName: sortOrder }],
+    type: [{ type: sortOrder }, { company: 'asc' }, { lastName: 'asc' }],
+    email: [{ email: sortOrder }, { company: 'asc' }, { lastName: 'asc' }],
+    city: [{ city: sortOrder }, { company: 'asc' }, { lastName: 'asc' }],
+    orders: [{ orders: { _count: sortOrder } }, { company: 'asc' }, { lastName: 'asc' }],
+  }
+
+  const orderBy = orderByMap[sortBy] ?? orderByMap.name
+
   const [clients, total] = await Promise.all([
     prisma.client.findMany({
       where,
-      orderBy: [{ company: 'asc' }, { lastName: 'asc' }],
+      orderBy,
       skip: (page - 1) * limit,
       take: limit,
       include: {
@@ -40,7 +53,7 @@ export async function GET(request: NextRequest) {
     prisma.client.count({ where }),
   ])
 
-  return NextResponse.json({ clients, total, page, limit })
+  return NextResponse.json({ clients, total, page, limit, sortBy, sortOrder })
 }
 
 export async function POST(request: NextRequest) {

@@ -14,6 +14,7 @@ export const orderItemSchema = z.object({
 
 export const orderSchema = z.object({
   clientId: z.string().uuid('Client requis'),
+  currency: z.enum(['MAD', 'EUR', 'GBP', 'USD']).default('MAD'),
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide').optional().or(z.literal('')),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Au moins une ligne requise'),

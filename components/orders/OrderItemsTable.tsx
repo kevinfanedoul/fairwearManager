@@ -15,6 +15,7 @@ export function OrderItemsTable() {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
   const items = watch('items')
+  const currency = watch('currency') ?? 'MAD'
 
   function quantityFromSizes(index: number) {
     const item = items[index]
@@ -87,7 +88,7 @@ export function OrderItemsTable() {
                   )} />
                 </td>
                 <td className="py-2 px-2 text-right font-medium">
-                  <CurrencyDisplay amount={lineTotal(index)} />
+                  <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
                 </td>
                 <td className="py-2 pl-2">
                   <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
@@ -111,9 +112,9 @@ export function OrderItemsTable() {
 
       <div className="flex justify-end">
         <div className="text-sm space-y-1 min-w-48">
-          <div className="flex justify-between text-slate-600"><span>Total HT</span><CurrencyDisplay amount={totalHT} /></div>
-          <div className="flex justify-between text-slate-600"><span>TVA 20%</span><CurrencyDisplay amount={tva} /></div>
-          <div className="flex justify-between font-bold text-slate-900 border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={ttc} /></div>
+          <div className="flex justify-between text-slate-600"><span>Total HT</span><CurrencyDisplay amount={totalHT} currency={currency} /></div>
+          <div className="flex justify-between text-slate-600"><span>TVA 20%</span><CurrencyDisplay amount={tva} currency={currency} /></div>
+          <div className="flex justify-between font-bold text-slate-900 border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={ttc} currency={currency} /></div>
         </div>
       </div>
     </div>

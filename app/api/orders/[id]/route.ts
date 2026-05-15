@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { orderSchema } from '@/lib/validators/order'
+import { calculateOrderTotals } from '@/lib/calculations/invoice'
 
 const updateStatusSchema = z.object({
   status: z.enum(['QUOTE','CONFIRMED','SOURCING','STUDY','PRODUCTION','READY','DELIVERED','INVOICED','PAID','CANCELLED']),
@@ -35,10 +37,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params
   const body = await request.json()
-  const parsed = updateStatusSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Données invalides' }, { status: 400 })
-  }
 
   const existingOrder = await prisma.order.findUnique({
     where: { id },
@@ -49,17 +47,60 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 })
   }
 
-  if (parsed.data.status === 'CANCELLED' && existingOrder.status !== 'QUOTE') {
-    return NextResponse.json({ error: 'Seul un devis non confirmé peut être annulé' }, { status: 400 })
+  if ('status' in body) {
+    const parsed = updateStatusSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Données invalides' }, { status: 400 })
+    }
+
+    if (parsed.data.status === 'CANCELLED' && existingOrder.status !== 'QUOTE') {
+      return NextResponse.json({ error: 'Seul un devis non confirmé peut être annulé' }, { status: 400 })
+    }
+
+    const order = await prisma.order.update({
+      where: { id },
+      data: {
+        status: parsed.data.status,
+        ...(parsed.data.notes !== undefined && { notes: parsed.data.notes }),
+        ...(parsed.data.deadline && { deadline: new Date(parsed.data.deadline) }),
+      },
+    })
+    return NextResponse.json(order)
   }
 
-  const order = await prisma.order.update({
-    where: { id },
-    data: {
-      status: parsed.data.status,
-      ...(parsed.data.notes !== undefined && { notes: parsed.data.notes }),
-      ...(parsed.data.deadline && { deadline: new Date(parsed.data.deadline) }),
-    },
+  if (existingOrder.status !== 'QUOTE') {
+    return NextResponse.json({ error: 'Seul un devis non confirmé peut être modifié' }, { status: 400 })
+  }
+
+  const parsed = orderSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const { items, clientId, currency, deadline, notes } = parsed.data
+  const itemsWithTotals = items.map((item) => ({
+    ...item,
+    totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100,
+  }))
+  const { totalHT, totalTTC } = calculateOrderTotals(items)
+
+  const order = await prisma.$transaction(async (tx) => {
+    await tx.orderItem.deleteMany({ where: { orderId: id } })
+
+    return tx.order.update({
+      where: { id },
+      data: {
+        clientId,
+        currency,
+        deadline: deadline ? new Date(deadline) : null,
+        notes,
+        totalHT,
+        totalTTC,
+        items: { create: itemsWithTotals },
+      },
+      include: { items: true },
+    })
   })
+
   return NextResponse.json(order)
 }

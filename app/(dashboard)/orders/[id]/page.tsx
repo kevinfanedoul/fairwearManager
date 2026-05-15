@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Check, Download } from 'lucide-react'
+import { Check, Download, FilePenLine } from 'lucide-react'
 
 type OrderItemView = {
   id: string
@@ -23,6 +23,25 @@ type OrderItemView = {
   quantity: number
   unitPrice: number
   totalPrice: number
+}
+
+type OrderView = {
+  id: string
+  reference: string
+  status: OrderStatus
+  orderDate: string
+  deadline: string | null
+  totalHT: number
+  totalTTC: number
+  currency: 'MAD' | 'EUR' | 'GBP' | 'USD'
+  notes?: string | null
+  client?: {
+    company: string | null
+    firstName: string | null
+    lastName: string | null
+  }
+  invoice?: { id: string } | null
+  items?: OrderItemView[]
 }
 
 const workflowSteps: OrderStatus[] = [
@@ -51,7 +70,7 @@ export default function OrderDetailPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading } = useQuery<OrderView>({
     queryKey: ['order', id],
     queryFn: async () => {
       const res = await fetch(`/api/orders/${id}`)
@@ -114,36 +133,83 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold">{order.reference}</h1>
-          <p className="text-slate-500">{clientName}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          <StatusBadge label={ORDER_STATUS_LABELS[order.status as keyof typeof ORDER_STATUS_LABELS]} variant="info" />
-          <a href={`/api/orders/${id}/pdf`} className={buttonVariants({ variant: 'outline' })}>
-            <Download size={16} className="mr-2" />Télécharger PDF
-          </a>
-          {order.status === 'QUOTE' && (
-            <>
-              <Button variant="outline" onClick={() => cancelQuoteMutation.mutate()} disabled={cancelQuoteMutation.isPending || confirmMutation.isPending}>
-                {cancelQuoteMutation.isPending ? 'Annulation…' : 'Annuler le devis'}
+      <div className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="mb-2 inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-sky-700">
+              Espace devis
+            </div>
+            <h1 className="text-2xl font-bold text-slate-950">{order.reference}</h1>
+            <p className="mt-1 text-slate-600">{clientName}</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Gérez les ajustements du client, confirmez le devis ou annulez-le avant validation.
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-3 lg:w-auto lg:max-w-[42rem] lg:items-end">
+            <div className="flex justify-start lg:justify-end">
+              <div className="rounded-full bg-white/90 px-1 py-1 shadow-sm ring-1 ring-slate-200/80">
+                <StatusBadge label={ORDER_STATUS_LABELS[order.status as keyof typeof ORDER_STATUS_LABELS]} variant="info" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+              <a
+                href={`/api/orders/${id}/pdf`}
+                className={buttonVariants({ variant: 'outline', className: 'w-full justify-center sm:w-auto' })}
+              >
+                <Download size={16} className="mr-2" />Télécharger PDF
+              </a>
+
+              {order.invoice && (
+                <Link
+                  href={`/invoices/${order.invoice.id}`}
+                  className={buttonVariants({ variant: 'outline', className: 'w-full justify-center sm:w-auto' })}
+                >
+                  Voir la facture
+                </Link>
+              )}
+
+              {order.status === 'QUOTE' && (
+                <Link
+                  href={`/orders/${id}/edit`}
+                  className={buttonVariants({ variant: 'secondary', className: 'w-full justify-center sm:w-auto' })}
+                >
+                  <FilePenLine size={16} className="mr-2" />
+                  Modifier
+                </Link>
+              )}
+              {order.status === 'QUOTE' && (
+                <Button
+                  variant="destructive"
+                  className="w-full justify-center sm:w-auto"
+                  onClick={() => cancelQuoteMutation.mutate()}
+                  disabled={cancelQuoteMutation.isPending || confirmMutation.isPending}
+                >
+                  {cancelQuoteMutation.isPending ? 'Annulation…' : 'Annuler le devis'}
+                </Button>
+              )}
+
+              {order.status === 'QUOTE' && (
+                <Button
+                  className="w-full justify-center bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
+                  onClick={() => confirmMutation.mutate()}
+                  disabled={confirmMutation.isPending || cancelQuoteMutation.isPending}
+                >
+                  {confirmMutation.isPending ? 'Confirmation…' : 'Confirmer la commande'}
+                </Button>
+              )}
+            </div>
+
+            {order.status === 'CONFIRMED' && !order.invoice && (
+              <Button
+                className="w-full justify-center bg-sky-600 text-white hover:bg-sky-700 sm:w-auto"
+                onClick={() => createInvoiceMutation.mutate()}
+                disabled={createInvoiceMutation.isPending}
+              >
+                {createInvoiceMutation.isPending ? 'Création de la facture…' : 'Créer la facture'}
               </Button>
-              <Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending || cancelQuoteMutation.isPending}>
-                {confirmMutation.isPending ? 'Confirmation…' : 'Confirmer la commande'}
-              </Button>
-            </>
-          )}
-          {order.status === 'CONFIRMED' && !order.invoice && (
-            <Button onClick={() => createInvoiceMutation.mutate()} disabled={createInvoiceMutation.isPending}>
-              {createInvoiceMutation.isPending ? 'Création de la facture…' : 'Créer la facture'}
-            </Button>
-          )}
-          {order.invoice && (
-            <Link href={`/invoices/${order.invoice.id}`} className={buttonVariants({ variant: 'outline' })}>
-              Voir la facture
-            </Link>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -234,9 +300,9 @@ export default function OrderDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Totaux</CardTitle></CardHeader>
           <CardContent className="text-sm space-y-2">
-            <div className="flex justify-between"><span className="text-slate-500">Total HT</span><CurrencyDisplay amount={order.totalHT} /></div>
-            <div className="flex justify-between"><span className="text-slate-500">TVA 20%</span><CurrencyDisplay amount={Number(order.totalTTC) - Number(order.totalHT)} /></div>
-            <div className="flex justify-between font-bold border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={order.totalTTC} /></div>
+            <div className="flex justify-between"><span className="text-slate-500">Total HT</span><CurrencyDisplay amount={order.totalHT} currency={order.currency} /></div>
+            <div className="flex justify-between"><span className="text-slate-500">TVA 20%</span><CurrencyDisplay amount={Number(order.totalTTC) - Number(order.totalHT)} currency={order.currency} /></div>
+            <div className="flex justify-between font-bold border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={order.totalTTC} currency={order.currency} /></div>
           </CardContent>
         </Card>
       </div>
@@ -256,8 +322,8 @@ export default function OrderDetailPage() {
                   <td className="text-center">{item.sizeXL || '—'}</td>
                   <td className="text-center">{item.sizeTU || '—'}</td>
                   <td className="text-center">{item.quantity}</td>
-                  <td className="text-right"><CurrencyDisplay amount={item.unitPrice} /></td>
-                  <td className="text-right"><CurrencyDisplay amount={item.totalPrice} /></td>
+                  <td className="text-right"><CurrencyDisplay amount={item.unitPrice} currency={order.currency} /></td>
+                  <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
                 </tr>
               ))}
             </tbody>
