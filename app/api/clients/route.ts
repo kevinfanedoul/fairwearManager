@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
+import { ClientType, type Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { clientSchema } from '@/lib/validators/client'
 import { createClient } from '@/lib/supabase/server'
@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search') ?? ''
-  const type = searchParams.get('type') ?? undefined
+  const requestedType = searchParams.get('type')
+  const type = requestedType && Object.values(ClientType).includes(requestedType as ClientType)
+    ? requestedType as ClientType
+    : undefined
   const page = parseInt(searchParams.get('page') ?? '1')
   const limit = parseInt(searchParams.get('limit') ?? '50')
   const sortBy = searchParams.get('sortBy') ?? 'name'
@@ -19,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   const where = {
     active: true,
-    ...(type && { type: type as any }),
+    ...(type && { type }),
     ...(search && {
       OR: [
         { company: { contains: search, mode: 'insensitive' as const } },
@@ -30,12 +33,41 @@ export async function GET(request: NextRequest) {
     }),
   }
 
+  const textSort = (direction: 'asc' | 'desc'): Prisma.SortOrderInput => ({
+    sort: direction,
+    nulls: 'last',
+  })
+
   const orderByMap: Record<string, Prisma.ClientOrderByWithRelationInput[]> = {
-    name: [{ company: sortOrder }, { lastName: sortOrder }, { firstName: sortOrder }],
-    type: [{ type: sortOrder }, { company: 'asc' }, { lastName: 'asc' }],
-    email: [{ email: sortOrder }, { company: 'asc' }, { lastName: 'asc' }],
-    city: [{ city: sortOrder }, { company: 'asc' }, { lastName: 'asc' }],
-    orders: [{ orders: { _count: sortOrder } }, { company: 'asc' }, { lastName: 'asc' }],
+    name: [
+      { company: textSort(sortOrder) },
+      { lastName: textSort(sortOrder) },
+      { firstName: textSort(sortOrder) },
+    ],
+    type: [
+      { type: sortOrder },
+      { company: textSort('asc') },
+      { lastName: textSort('asc') },
+      { firstName: textSort('asc') },
+    ],
+    email: [
+      { email: textSort(sortOrder) },
+      { company: textSort('asc') },
+      { lastName: textSort('asc') },
+      { firstName: textSort('asc') },
+    ],
+    city: [
+      { city: textSort(sortOrder) },
+      { company: textSort('asc') },
+      { lastName: textSort('asc') },
+      { firstName: textSort('asc') },
+    ],
+    orders: [
+      { orders: { _count: sortOrder } },
+      { company: textSort('asc') },
+      { lastName: textSort('asc') },
+      { firstName: textSort('asc') },
+    ],
   }
 
   const orderBy = orderByMap[sortBy] ?? orderByMap.name
