@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
-import { renderToBuffer } from '@react-pdf/renderer'
+import { renderToBuffer, type DocumentProps } from '@react-pdf/renderer'
 import { InvoicePDF } from '@/components/invoices/InvoicePDF'
 import React from 'react'
 
@@ -22,46 +22,48 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   })
   if (!invoice) return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
 
-  const buffer = await (renderToBuffer as any)(
-    React.createElement(InvoicePDF as any, {
-      invoice: {
-        number: invoice.number,
-        issueDate: invoice.issueDate.toISOString(),
-        dueDate: invoice.dueDate?.toISOString(),
-        totalHT: Number(invoice.totalHT),
-        tvaRate: Number(invoice.tvaRate),
-        tvaAmount: Number(invoice.tvaAmount),
-        stampDuty: Number(invoice.stampDuty),
-        totalTTC: Number(invoice.totalTTC),
-        notes: invoice.notes,
-        client: {
-          company: invoice.client.company,
-          firstName: invoice.client.firstName,
-          lastName: invoice.client.lastName,
-          address: invoice.client.address,
-          city: invoice.client.city,
-          ice: invoice.client.ice,
-        },
-        order: invoice.order
-          ? {
-              items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown }) => ({
-                designation: item.designation,
-                sizeS: item.sizeS,
-                sizeM: item.sizeM,
-                sizeL: item.sizeL,
-                sizeXL: item.sizeXL,
-                sizeTU: item.sizeTU,
-                quantity: item.quantity,
-                unitPrice: Number(item.unitPrice),
-                totalPrice: Number(item.totalPrice),
-              })),
-            }
-          : null,
+  const document = React.createElement(InvoicePDF, {
+    invoice: {
+      number: invoice.number,
+      issueDate: invoice.issueDate.toISOString(),
+      dueDate: invoice.dueDate?.toISOString(),
+      totalHT: Number(invoice.totalHT),
+      tvaRate: Number(invoice.tvaRate),
+      tvaAmount: Number(invoice.tvaAmount),
+      stampDuty: Number(invoice.stampDuty),
+      totalTTC: Number(invoice.totalTTC),
+      notes: invoice.notes,
+      currency: (invoice.order?.currency ?? 'MAD') as 'MAD' | 'EUR' | 'GBP' | 'USD',
+      client: {
+        company: invoice.client.company,
+        firstName: invoice.client.firstName,
+        lastName: invoice.client.lastName,
+        address: invoice.client.address,
+        city: invoice.client.city,
+        ice: invoice.client.ice,
       },
-    })
-  )
+      order: invoice.order
+        ? {
+            currency: invoice.order.currency as 'MAD' | 'EUR' | 'GBP' | 'USD',
+            items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown }) => ({
+              designation: item.designation,
+              sizeS: item.sizeS,
+              sizeM: item.sizeM,
+              sizeL: item.sizeL,
+              sizeXL: item.sizeXL,
+              sizeTU: item.sizeTU,
+              quantity: item.quantity,
+              unitPrice: Number(item.unitPrice),
+              totalPrice: Number(item.totalPrice),
+            })),
+          }
+        : null,
+    },
+  })
 
-  return new NextResponse(buffer, {
+  const buffer = await renderToBuffer(document as React.ReactElement<DocumentProps>)
+
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="${invoice.number.replace('/', '-')}.pdf"`,

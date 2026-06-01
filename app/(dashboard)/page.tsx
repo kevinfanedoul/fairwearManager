@@ -105,7 +105,7 @@ export default function DashboardPage() {
               <p className="text-slate-400 text-sm">Aucun impayé en retard</p>
             )}
             {kpis?.overdueInvoices?.map((invoice: any) => {
-              const paid = invoice.payments?.reduce((s: number, p: any) => s + Number(p.amount), 0) ?? 0
+              const paid = invoice.payments?.reduce((s: number, p: any) => s + Number(p.appliedAmount ?? p.amount), 0) ?? 0
               const remaining = Number(invoice.totalTTC) - paid
               const clientName = invoice.client?.company || [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(' ')
               return (
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                     <Link href={`/invoices/${invoice.id}`} className="font-medium text-sm hover:underline">{invoice.number}</Link>
                     <p className="text-xs text-slate-500">{clientName}</p>
                   </div>
-                  <span className="text-sm font-bold text-red-600"><CurrencyDisplay amount={remaining} /></span>
+                  <span className="text-sm font-bold text-red-600"><CurrencyDisplay amount={remaining} currency={invoice.order?.currency ?? 'MAD'} /></span>
                 </div>
               )
             })}

@@ -1,3 +1,13 @@
+import type { OrderCurrency } from '@/lib/currencies'
+
+export function getVATRateForCurrency(currency: OrderCurrency): number {
+  return currency === 'MAD' ? 0.2 : 0
+}
+
+export function shouldApplyMoroccanVAT(currency: OrderCurrency): boolean {
+  return getVATRateForCurrency(currency) > 0
+}
+
 export function calculateTVA(ht: number, rate = 0.2): number {
   return Math.round(ht * rate * 100) / 100
 }
@@ -8,13 +18,14 @@ export function calculateStampDuty(ttc: number): number {
 }
 
 export function calculateOrderTotals(
-  items: { quantity: number; unitPrice: number }[]
+  items: { quantity: number; unitPrice: number }[],
+  currency: OrderCurrency = 'MAD'
 ): { totalHT: number; tvaAmount: number; totalTTC: number } {
   const totalHT =
     Math.round(
       items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) * 100
     ) / 100
-  const tvaAmount = calculateTVA(totalHT)
+  const tvaAmount = calculateTVA(totalHT, getVATRateForCurrency(currency))
   const totalTTC = Math.round((totalHT + tvaAmount) * 100) / 100
   return { totalHT, tvaAmount, totalTTC }
 }

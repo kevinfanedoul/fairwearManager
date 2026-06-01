@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma, type InvoiceStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createInvoiceSchema } from '@/lib/validators/invoice'
-import { calculateTVA, calculateStampDuty } from '@/lib/calculations/invoice'
+import { calculateTVA, calculateStampDuty, getVATRateForCurrency } from '@/lib/calculations/invoice'
 import { formatInvoiceNumber } from '@/lib/calculations/invoice-number'
 import { createClient } from '@/lib/supabase/server'
 
@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
     orderBy: { issueDate: 'desc' },
     include: {
       client: { select: { id: true, company: true, firstName: true, lastName: true } },
+      order: { select: { currency: true } },
       payments: true,
     },
   })
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
   if (order.invoice) return NextResponse.json({ error: 'Une facture existe déjà pour cette commande' }, { status: 400 })
 
   const totalHT = Number(order.totalHT)
-  const tvaRate = 0.20
+  const tvaRate = getVATRateForCurrency(order.currency as 'MAD' | 'EUR' | 'GBP' | 'USD')
   const tvaAmount = calculateTVA(totalHT, tvaRate)
   const totalTTCBeforeStamp = totalHT + tvaAmount
   const stampDuty = applyStampDuty ? calculateStampDuty(totalTTCBeforeStamp) : 0

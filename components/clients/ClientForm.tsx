@@ -1,6 +1,7 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import type { ChangeEvent } from 'react'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { clientSchema, type ClientInput } from '@/lib/validators/client'
@@ -17,10 +18,25 @@ interface ClientFormProps {
   clientId?: string
 }
 
+function nullableFieldProps<T extends string | null | undefined>(
+  field: {
+    value: T
+    onChange: (value: T | null) => void
+  }
+) {
+  return {
+    value: field.value ?? '',
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const value = event.target.value
+      field.onChange((value === '' ? null : value) as T | null)
+    },
+  }
+}
+
 export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
   const router = useRouter()
   const form = useForm<ClientInput>({
-    resolver: zodResolver(clientSchema) as any,
+    resolver: zodResolver(clientSchema) as Resolver<ClientInput>,
     defaultValues: {
       type: 'B2B',
       country: 'MA',
@@ -83,14 +99,14 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
               <FormField control={form.control} name="company" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Société</FormLabel>
-                  <FormControl><Input {...field} placeholder="Fairwear SA" /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} placeholder="Fairwear SA" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="ice" render={({ field }) => (
                 <FormItem>
                   <FormLabel>ICE</FormLabel>
-                  <FormControl><Input {...field} placeholder="001234567000000" /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} placeholder="001234567000000" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -100,14 +116,14 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
               <FormField control={form.control} name="firstName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Prénom</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="lastName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nom</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -117,14 +133,14 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
               <FormField control={form.control} name="email" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-                  <FormControl><Input {...field} type="email" /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} type="email" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="phone" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Téléphone</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -134,14 +150,14 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
               <FormField control={form.control} name="address" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Adresse</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="city" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Ville</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormControl><Input {...field} {...nullableFieldProps(field)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -150,7 +166,7 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
             <FormField control={form.control} name="notes" render={({ field }) => (
               <FormItem>
                 <FormLabel>Notes</FormLabel>
-                <FormControl><Textarea {...field} rows={3} /></FormControl>
+                <FormControl><Textarea {...field} {...nullableFieldProps(field)} rows={3} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { deriveInvoiceStatus } from '@/lib/calculations/invoice-status'
+import { updateInvoiceSchema } from '@/lib/validators/invoice'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -14,6 +16,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       client: true,
       order: { include: { items: true } },
       payments: { orderBy: { date: 'asc' } },
+      creditNotes: {
+        orderBy: { issueDate: 'asc' },
+        include: { items: { orderBy: { designation: 'asc' } } },
+      },
     },
   })
   if (!invoice) return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
@@ -39,5 +45,43 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(invoice)
   }
 
-  return NextResponse.json({ error: 'Modification non autorisée' }, { status: 400 })
+  const parsed = updateInvoiceSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const currentInvoice = await prisma.invoice.findUnique({
+    where: { id },
+    include: {
+      payments: true,
+      creditNotes: true,
+    },
+  })
+
+  if (!currentInvoice) {
+    return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
+  }
+
+  const totalApplied = currentInvoice.payments.reduce((sum, payment) => {
+    return sum + Number(payment.appliedAmount ?? payment.amount)
+  }, 0)
+  const totalCredited = currentInvoice.creditNotes.reduce((sum, creditNote) => {
+    return sum + Number(creditNote.totalTTC)
+  }, 0)
+  const nextDueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null
+  const nextStatus = currentInvoice.status === 'CANCELLED'
+    ? 'CANCELLED'
+    : deriveInvoiceStatus(Number(currentInvoice.totalTTC), totalApplied, totalCredited, nextDueDate)
+
+  const invoice = await prisma.invoice.update({
+    where: { id },
+    data: {
+      issueDate: new Date(parsed.data.issueDate),
+      dueDate: nextDueDate,
+      notes: parsed.data.notes,
+      status: nextStatus,
+    },
+  })
+
+  return NextResponse.json(invoice)
 }

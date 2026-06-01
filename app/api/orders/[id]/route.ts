@@ -57,6 +57,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Seul un devis non confirmé peut être annulé' }, { status: 400 })
     }
 
+    if (parsed.data.status === 'QUOTE' && existingOrder.status !== 'CANCELLED') {
+      return NextResponse.json({ error: 'Seul un devis annulé peut être réouvert' }, { status: 400 })
+    }
+
     const order = await prisma.order.update({
       where: { id },
       data: {
@@ -82,7 +86,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     ...item,
     totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100,
   }))
-  const { totalHT, totalTTC } = calculateOrderTotals(items)
+  const { totalHT, totalTTC } = calculateOrderTotals(items, currency)
 
   const order = await prisma.$transaction(async (tx) => {
     await tx.orderItem.deleteMany({ where: { orderId: id } })

@@ -1,18 +1,34 @@
 import { z } from 'zod'
 
+const nullableTextField = z.preprocess(
+  (value) => {
+    if (value === '') return null
+    return value
+  },
+  z.string().trim().min(1).nullable().optional()
+)
+
+const nullableEmailField = z.preprocess(
+  (value) => {
+    if (value === '') return null
+    return value
+  },
+  z.string().trim().email().nullable().optional()
+)
+
 export const clientSchema = z.object({
   type: z.enum(['BRAND', 'B2B', 'INDIVIDUAL', 'STUDIO']),
-  company: z.string().min(1).optional().or(z.literal('')),
-  firstName: z.string().min(1).optional().or(z.literal('')),
-  lastName: z.string().min(1).optional().or(z.literal('')),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
+  company: nullableTextField,
+  firstName: nullableTextField,
+  lastName: nullableTextField,
+  email: nullableEmailField,
+  phone: nullableTextField,
+  address: nullableTextField,
+  city: nullableTextField,
   country: z.string().default('MA'),
-  ice: z.string().optional(),
-  tvaNumber: z.string().optional(),
-  notes: z.string().optional(),
+  ice: nullableTextField,
+  tvaNumber: nullableTextField,
+  notes: nullableTextField,
 })
 
 export const measurementSchema = z.object({

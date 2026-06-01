@@ -7,6 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getVATRateForCurrency } from '@/lib/calculations/invoice'
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -126,10 +127,27 @@ export default function OrderDetailPage() {
     },
   })
 
+  const reopenQuoteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'QUOTE' }),
+      })
+      if (!res.ok) throw new Error('Erreur réouverture')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+  })
+
   if (isLoading) return <div className="text-slate-500">Chargement…</div>
   if (!order) return <div className="text-red-600">Commande introuvable</div>
 
   const clientName = order.client?.company || [order.client?.firstName, order.client?.lastName].filter(Boolean).join(' ')
+  const vatRate = getVATRateForCurrency(order.currency)
 
   return (
     <div className="space-y-6">
@@ -196,6 +214,16 @@ export default function OrderDetailPage() {
                   disabled={confirmMutation.isPending || cancelQuoteMutation.isPending}
                 >
                   {confirmMutation.isPending ? 'Confirmation…' : 'Confirmer la commande'}
+                </Button>
+              )}
+
+              {order.status === 'CANCELLED' && (
+                <Button
+                  className="w-full justify-center bg-amber-600 text-white hover:bg-amber-700 sm:w-auto"
+                  onClick={() => reopenQuoteMutation.mutate()}
+                  disabled={reopenQuoteMutation.isPending}
+                >
+                  {reopenQuoteMutation.isPending ? 'Réouverture…' : 'Réouvrir le devis'}
                 </Button>
               )}
             </div>
@@ -301,7 +329,7 @@ export default function OrderDetailPage() {
           <CardHeader><CardTitle className="text-base">Totaux</CardTitle></CardHeader>
           <CardContent className="text-sm space-y-2">
             <div className="flex justify-between"><span className="text-slate-500">Total HT</span><CurrencyDisplay amount={order.totalHT} currency={order.currency} /></div>
-            <div className="flex justify-between"><span className="text-slate-500">TVA 20%</span><CurrencyDisplay amount={Number(order.totalTTC) - Number(order.totalHT)} currency={order.currency} /></div>
+            <div className="flex justify-between"><span className="text-slate-500">TVA {Math.round(vatRate * 100)}%</span><CurrencyDisplay amount={Number(order.totalTTC) - Number(order.totalHT)} currency={order.currency} /></div>
             <div className="flex justify-between font-bold border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={order.totalTTC} currency={order.currency} /></div>
           </CardContent>
         </Card>

@@ -7,6 +7,7 @@ import { FormField, FormControl, FormItem, FormMessage } from '@/components/ui/f
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Trash2, Plus } from 'lucide-react'
 import type { OrderInput } from '@/lib/validators/order'
+import { getVATRateForCurrency } from '@/lib/calculations/invoice'
 
 const sizeFields = ['sizeS', 'sizeM', 'sizeL', 'sizeXL', 'sizeTU'] as const
 
@@ -31,7 +32,8 @@ export function OrderItemsTable() {
   }
 
   const totalHT = items.reduce((sum, item, i) => sum + lineTotal(i), 0)
-  const tva = Math.round(totalHT * 0.2 * 100) / 100
+  const vatRate = getVATRateForCurrency(currency)
+  const tva = Math.round(totalHT * vatRate * 100) / 100
   const ttc = Math.round((totalHT + tva) * 100) / 100
 
   return (
@@ -113,7 +115,7 @@ export function OrderItemsTable() {
       <div className="flex justify-end">
         <div className="text-sm space-y-1 min-w-48">
           <div className="flex justify-between text-slate-600"><span>Total HT</span><CurrencyDisplay amount={totalHT} currency={currency} /></div>
-          <div className="flex justify-between text-slate-600"><span>TVA 20%</span><CurrencyDisplay amount={tva} currency={currency} /></div>
+          <div className="flex justify-between text-slate-600"><span>TVA {Math.round(vatRate * 100)}%</span><CurrencyDisplay amount={tva} currency={currency} /></div>
           <div className="flex justify-between font-bold text-slate-900 border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={ttc} currency={currency} /></div>
         </div>
       </div>

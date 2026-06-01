@@ -13,9 +13,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { format, startOfMonth, startOfYear } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Plus, TrendingUp, TrendingDown } from 'lucide-react'
+import { FOREIGN_ORDER_CURRENCIES, ORDER_CURRENCIES, type OrderCurrency } from '@/lib/currencies'
+
+type ForeignCurrency = typeof FOREIGN_ORDER_CURRENCIES[number]
 
 const CASH_ENTRY_TYPE_LABELS = {
   INCOME: 'Recette',
@@ -40,6 +44,7 @@ type CashChartPoint = {
 }
 
 type ChartGranularity = 'day' | 'month' | 'year'
+type ExchangeRateResponse = { rates: Record<OrderCurrency, number> }
 
 const CHART_GRANULARITY_LABELS: Record<ChartGranularity, string> = {
   day: 'Jour',
@@ -308,6 +313,99 @@ function TreasuryChart({
   )
 }
 
+function ExchangeRatesPanel() {
+  const queryClient = useQueryClient()
+  const [draftRates, setDraftRates] = useState<Partial<Record<ForeignCurrency, string>>>({})
+
+  const { data, isLoading } = useQuery<ExchangeRateResponse>({
+    queryKey: ['exchange-rates'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings/exchange-rates')
+      if (!res.ok) throw new Error('Erreur taux de change')
+      return res.json() as Promise<ExchangeRateResponse>
+    },
+  })
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const rates = FOREIGN_ORDER_CURRENCIES.map((currency) => ({
+        currency,
+        rateToMad: parseFloat(draftRates[currency] ?? String(data?.rates?.[currency] ?? '')),
+      }))
+
+      const res = await fetch('/api/settings/exchange-rates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rates }),
+      })
+      if (!res.ok) throw new Error('Erreur sauvegarde taux')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exchange-rates'] })
+    },
+  })
+
+  const hasInvalidRate = FOREIGN_ORDER_CURRENCIES.some((currency) => {
+    const value = parseFloat(draftRates[currency] ?? String(data?.rates?.[currency] ?? ''))
+    return Number.isNaN(value) || value <= 0
+  })
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-sky-50 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Taux de change</h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          Définissez le taux utilisé au moment des règlements pour convertir un encaissement en MAD
+          vers la devise de la facture. Format utilisé : <span className="font-medium">1 devise = X MAD</span>.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-slate-200/80">
+          <CardContent className="pt-6">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">MAD</p>
+            <p className="mt-2 text-lg font-semibold text-slate-900">{ORDER_CURRENCIES.MAD}</p>
+            <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">1 MAD = 1.0000 MAD</p>
+          </CardContent>
+        </Card>
+
+        {FOREIGN_ORDER_CURRENCIES.map((currency) => (
+          <Card key={currency} className="border-slate-200/80">
+            <CardContent className="pt-6 space-y-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{currency}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{ORDER_CURRENCIES[currency]}</p>
+              </div>
+              <label className="block text-sm text-slate-600">
+                1 {currency} =
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  value={draftRates[currency] ?? String(data?.rates?.[currency] ?? '')}
+                  onChange={(event) => setDraftRates((current) => ({ ...current, [currency]: event.target.value }))}
+                  className="mt-2"
+                />
+              </label>
+              <p className="text-xs text-slate-500">Montant exprimé en dirhams marocains.</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p className="text-sm text-slate-500">
+          {isLoading ? 'Chargement des taux…' : 'Les nouveaux taux seront appliqués aux prochains règlements.'}
+        </p>
+        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || hasInvalidRate}>
+          {mutation.isPending ? 'Enregistrement…' : 'Enregistrer les taux'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function TreasuryPage() {
   const [open, setOpen] = useState(false)
   const [chartGranularity, setChartGranularity] = useState<ChartGranularity>('month')
@@ -429,71 +527,84 @@ export default function TreasuryPage() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-slate-500">Solde actuel</p>
-            <p className={`text-2xl font-bold mt-1 ${currentBalance >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
-              <CurrencyDisplay amount={currentBalance} />
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-slate-500 flex items-center gap-1"><TrendingUp size={14} className="text-green-600" />Total recettes</p>
-            <p className="text-2xl font-bold mt-1 text-green-700"><CurrencyDisplay amount={totalIncome} /></p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-slate-500 flex items-center gap-1"><TrendingDown size={14} className="text-red-500" />Total dépenses</p>
-            <p className="text-2xl font-bold mt-1 text-red-600"><CurrencyDisplay amount={totalExpense} /></p>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="cash">
+        <TabsList variant="line">
+          <TabsTrigger value="cash">Flux de caisse</TabsTrigger>
+          <TabsTrigger value="rates">Taux de change</TabsTrigger>
+        </TabsList>
 
-      {!isLoading && (
-        <TreasuryChart
-          entries={entries}
-          granularity={chartGranularity}
-          onGranularityChange={setChartGranularity}
-        />
-      )}
+        <TabsContent value="cash" className="space-y-6">
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-slate-500">Solde actuel</p>
+                <p className={`text-2xl font-bold mt-1 ${currentBalance >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                  <CurrencyDisplay amount={currentBalance} />
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-slate-500 flex items-center gap-1"><TrendingUp size={14} className="text-green-600" />Total recettes</p>
+                <p className="text-2xl font-bold mt-1 text-green-700"><CurrencyDisplay amount={totalIncome} /></p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-slate-500 flex items-center gap-1"><TrendingDown size={14} className="text-red-500" />Total dépenses</p>
+                <p className="text-2xl font-bold mt-1 text-red-600"><CurrencyDisplay amount={totalExpense} /></p>
+              </CardContent>
+            </Card>
+          </div>
 
-      {isLoading ? <div className="text-slate-500">Chargement…</div> : (
-        <div className="rounded-md border bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Libellé</TableHead>
-                <TableHead>Catégorie</TableHead>
-                <TableHead className="text-right">Recette</TableHead>
-                <TableHead className="text-right">Dépense</TableHead>
-                <TableHead className="text-right">Solde</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[...entries].reverse().map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="text-slate-500">{format(new Date(entry.date), 'dd/MM/yyyy', { locale: fr })}</TableCell>
-                  <TableCell>{entry.label}</TableCell>
-                  <TableCell className="text-slate-500">{entry.category || '—'}</TableCell>
-                  <TableCell className="text-right text-green-700">
-                    {entry.type === 'INCOME' ? <CurrencyDisplay amount={entry.amount} /> : '—'}
-                  </TableCell>
-                  <TableCell className="text-right text-red-600">
-                    {entry.type === 'EXPENSE' ? <CurrencyDisplay amount={entry.amount} /> : '—'}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    <CurrencyDisplay amount={entry.balance} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+          {!isLoading && (
+            <TreasuryChart
+              entries={entries}
+              granularity={chartGranularity}
+              onGranularityChange={setChartGranularity}
+            />
+          )}
+
+          {isLoading ? <div className="text-slate-500">Chargement…</div> : (
+            <div className="rounded-md border bg-white">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Libellé</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead className="text-right">Recette</TableHead>
+                    <TableHead className="text-right">Dépense</TableHead>
+                    <TableHead className="text-right">Solde</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...entries].reverse().map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="text-slate-500">{format(new Date(entry.date), 'dd/MM/yyyy', { locale: fr })}</TableCell>
+                      <TableCell>{entry.label}</TableCell>
+                      <TableCell className="text-slate-500">{entry.category || '—'}</TableCell>
+                      <TableCell className="text-right text-green-700">
+                        {entry.type === 'INCOME' ? <CurrencyDisplay amount={entry.amount} /> : '—'}
+                      </TableCell>
+                      <TableCell className="text-right text-red-600">
+                        {entry.type === 'EXPENSE' ? <CurrencyDisplay amount={entry.amount} /> : '—'}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        <CurrencyDisplay amount={entry.balance} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="rates">
+          <ExchangeRatesPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

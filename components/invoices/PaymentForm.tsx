@@ -1,34 +1,58 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useEffect } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { paymentSchema, type PaymentInput } from '@/lib/validators/invoice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { PAYMENT_METHOD_LABELS } from '@/types'
+import type { OrderCurrency } from '@/lib/currencies'
+import { convertMadToInvoiceCurrency, roundCurrencyAmount } from '@/lib/exchange-rates'
 
 interface PaymentFormProps {
   invoiceId: string
   remainingAmount: number
+  invoiceCurrency: OrderCurrency
   onSuccess?: () => void
 }
 
-export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFormProps) {
-  const queryClient = useQueryClient()
-  const defaultValues: PaymentInput = {
+function buildDefaultValues(amount: number): PaymentInput {
+  return {
     date: new Date().toISOString(),
-    amount: remainingAmount,
+    amount,
     method: 'CASH',
     reference: '',
   }
+}
+
+export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuccess }: PaymentFormProps) {
+  const queryClient = useQueryClient()
+  const { data: ratesData } = useQuery<{ rates: Record<OrderCurrency, number> }>({
+    queryKey: ['exchange-rates'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings/exchange-rates')
+      if (!res.ok) throw new Error('Erreur taux de change')
+      return res.json() as Promise<{ rates: Record<OrderCurrency, number> }>
+    },
+  })
+
+  const currentRate = ratesData?.rates?.[invoiceCurrency] ?? 1
+  const suggestedMadAmount = roundCurrencyAmount(
+    invoiceCurrency === 'MAD' ? remainingAmount : remainingAmount * currentRate
+  )
 
   const form = useForm<PaymentInput>({
     resolver: zodResolver(paymentSchema),
-    defaultValues,
+    defaultValues: buildDefaultValues(suggestedMadAmount),
   })
+
+  useEffect(() => {
+    form.setValue('amount', suggestedMadAmount, { shouldDirty: false, shouldValidate: true })
+  }, [form, suggestedMadAmount])
 
   async function onSubmit(data: PaymentInput) {
     const res = await fetch(`/api/invoices/${invoiceId}/payments`, {
@@ -41,13 +65,17 @@ export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFo
       return
     }
     queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] })
-    form.reset(defaultValues)
+    queryClient.invalidateQueries({ queryKey: ['invoices'] })
+    form.reset(buildDefaultValues(suggestedMadAmount))
     onSuccess?.()
   }
 
   function paymentMethodLabel(method: PaymentInput['method']) {
     return PAYMENT_METHOD_LABELS[method]
   }
+
+  const enteredAmountMad = Number(useWatch({ control: form.control, name: 'amount' }) ?? 0)
+  const appliedAmount = convertMadToInvoiceCurrency(enteredAmountMad, invoiceCurrency, currentRate)
 
   return (
     <Form {...form}>
@@ -100,6 +128,14 @@ export function PaymentForm({ invoiceId, remainingAmount, onSuccess }: PaymentFo
               <FormMessage />
             </FormItem>
           )} />
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <p>
+            Taux appliqué: <span className="font-medium">1 {invoiceCurrency} = {currentRate.toFixed(4)} MAD</span>
+          </p>
+          <p className="mt-1">
+            Montant appliqué à la facture: <span className="font-medium">{appliedAmount.toFixed(2)} {invoiceCurrency}</span>
+          </p>
         </div>
         {form.formState.errors.root && (
           <p className="text-sm text-red-600">{form.formState.errors.root.message}</p>

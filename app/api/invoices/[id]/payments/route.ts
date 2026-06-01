@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { type InvoiceStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createCashEntry } from '@/lib/treasury/create-cash-entry'
+import { getExchangeRateMap } from '@/lib/exchange-rate-store'
+import { convertMadToInvoiceCurrency, roundCurrencyAmount } from '@/lib/exchange-rates'
 import { paymentSchema } from '@/lib/validators/invoice'
 import { createClient } from '@/lib/supabase/server'
+import type { OrderCurrency } from '@/lib/currencies'
+import { deriveInvoiceStatus } from '@/lib/calculations/invoice-status'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -19,13 +22,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { payments: true, client: true },
+    include: { payments: true, creditNotes: true, client: true, order: { select: { id: true, currency: true } } },
   })
   if (!invoice) return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
 
-  const totalPaid = invoice.payments.reduce((sum: number, p: { amount: unknown }) => sum + Number(p.amount), 0) + parsed.data.amount
+  const invoiceCurrency = (invoice.order?.currency ?? 'MAD') as OrderCurrency
+  const exchangeRates = await getExchangeRateMap()
+  const exchangeRate = exchangeRates[invoiceCurrency]
+  const appliedAmount = convertMadToInvoiceCurrency(parsed.data.amount, invoiceCurrency, exchangeRate)
+  const totalPaid = invoice.payments.reduce((sum: number, p: { appliedAmount: unknown; amount: unknown }) => {
+    const paidAmount = p.appliedAmount == null ? Number(p.amount) : Number(p.appliedAmount)
+    return sum + paidAmount
+  }, 0) + appliedAmount
+  const totalCredited = invoice.creditNotes.reduce((sum, creditNote) => sum + Number(creditNote.totalTTC), 0)
   const totalTTC = Number(invoice.totalTTC)
-  const newStatus: InvoiceStatus = totalPaid >= totalTTC ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'PENDING'
+  const roundedTotalPaid = roundCurrencyAmount(totalPaid)
+  const newStatus = deriveInvoiceStatus(totalTTC, roundedTotalPaid, totalCredited, invoice.dueDate)
 
   const payment = await prisma.$transaction(async (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => {
     const createdPayment = await tx.payment.create({
@@ -33,6 +45,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         invoiceId: id,
         date: new Date(parsed.data.date),
         amount: parsed.data.amount,
+        appliedAmount,
+        currency: 'MAD',
+        exchangeRate,
         method: parsed.data.method,
         reference: parsed.data.reference,
         notes: parsed.data.notes,
@@ -41,8 +56,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     await tx.invoice.update({ where: { id }, data: { status: newStatus } })
 
-    if (newStatus === 'PAID' && invoice.orderId) {
-      await tx.order.update({ where: { id: invoice.orderId }, data: { status: 'PAID' } })
+    if (invoice.order?.id) {
+      await tx.order.update({
+        where: { id: invoice.order.id },
+        data: { status: newStatus === 'PAID' ? 'PAID' : 'INVOICED' },
+      })
     }
 
     await createCashEntry(tx, {

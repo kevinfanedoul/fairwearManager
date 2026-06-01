@@ -47,6 +47,7 @@ type ClientOption = {
 type PaymentView = {
   id: string
   amount: number
+  appliedAmount: number | null
 }
 
 type InvoiceView = {
@@ -57,6 +58,7 @@ type InvoiceView = {
   totalTTC: number
   accountingExported: boolean
   client: ClientOption
+  order: { currency: 'MAD' | 'EUR' | 'GBP' | 'USD' } | null
   payments: PaymentView[]
 }
 
@@ -130,7 +132,7 @@ export default function InvoicesPage() {
   }, [invoices])
 
   function totalPaid(invoice: InvoiceView) {
-    return invoice.payments.reduce((sum, payment) => sum + Number(payment.amount), 0)
+    return invoice.payments.reduce((sum, payment) => sum + Number(payment.appliedAmount ?? payment.amount), 0)
   }
 
   function resetFilters() {
@@ -276,10 +278,10 @@ export default function InvoicesPage() {
                     <TableCell className="text-slate-500">
                       {format(new Date(invoice.issueDate), 'dd/MM/yyyy', { locale: fr })}
                     </TableCell>
-                    <TableCell className="text-right"><CurrencyDisplay amount={invoice.totalTTC} /></TableCell>
-                    <TableCell className="text-right text-green-700"><CurrencyDisplay amount={paid} /></TableCell>
+                    <TableCell className="text-right"><CurrencyDisplay amount={invoice.totalTTC} currency={invoice.order?.currency ?? 'MAD'} /></TableCell>
+                    <TableCell className="text-right text-green-700"><CurrencyDisplay amount={paid} currency={invoice.order?.currency ?? 'MAD'} /></TableCell>
                     <TableCell className="text-right font-medium text-red-600">
-                      {remaining > 0 ? <CurrencyDisplay amount={remaining} /> : '—'}
+                      {remaining > 0 ? <CurrencyDisplay amount={remaining} currency={invoice.order?.currency ?? 'MAD'} /> : '—'}
                     </TableCell>
                     <TableCell>
                       {!invoice.accountingExported ? (

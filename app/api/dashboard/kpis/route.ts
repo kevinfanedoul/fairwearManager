@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
+import { getExchangeRateMap } from '@/lib/exchange-rate-store'
+import type { OrderCurrency } from '@/lib/currencies'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
@@ -15,6 +17,7 @@ export async function GET(request: NextRequest) {
   const overdueThreshold = subDays(now, 30)
 
   const [
+    exchangeRates,
     monthPayments,
     pendingInvoices,
     activeOrders,
@@ -23,13 +26,14 @@ export async function GET(request: NextRequest) {
     recentOrders,
     activeTodos,
   ] = await Promise.all([
+    getExchangeRateMap(),
     prisma.payment.aggregate({
       where: { date: { gte: monthStart, lte: monthEnd } },
       _sum: { amount: true },
     }),
     prisma.invoice.findMany({
       where: { status: { in: ['PENDING', 'PARTIAL'] } },
-      include: { payments: true },
+      include: { payments: true, order: { select: { currency: true } } },
     }),
     prisma.order.count({
       where: { status: { in: ['CONFIRMED', 'SOURCING', 'STUDY', 'PRODUCTION', 'READY'] } },
@@ -49,6 +53,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         client: { select: { company: true, firstName: true, lastName: true } },
+        order: { select: { currency: true } },
         payments: true,
       },
     }),
@@ -63,9 +68,11 @@ export async function GET(request: NextRequest) {
   ])
 
   const caMonth = Number(monthPayments._sum.amount ?? 0)
-  const pendingTotal = pendingInvoices.reduce((sum: number, inv: { totalTTC: unknown, payments: { amount: unknown }[] }) => {
-    const paid = inv.payments.reduce((s: number, p: { amount: unknown }) => s + Number(p.amount), 0)
-    return sum + Number(inv.totalTTC) - paid
+  const pendingTotal = pendingInvoices.reduce((sum: number, inv: { totalTTC: unknown, order: { currency: string } | null, payments: { amount: unknown; appliedAmount: unknown }[] }) => {
+    const paid = inv.payments.reduce((s: number, p: { amount: unknown; appliedAmount: unknown }) => s + Number(p.appliedAmount ?? p.amount), 0)
+    const remaining = Math.max(0, Number(inv.totalTTC) - paid)
+    const currency = (inv.order?.currency ?? 'MAD') as OrderCurrency
+    return sum + remaining * exchangeRates[currency]
   }, 0)
 
   return NextResponse.json({

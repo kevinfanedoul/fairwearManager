@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     ...item,
     totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100,
   }))
-  const { totalHT, totalTTC } = calculateOrderTotals(items)
+  const { totalHT, totalTTC } = calculateOrderTotals(items, currency)
 
   const order = await prisma.order.create({
     data: {
