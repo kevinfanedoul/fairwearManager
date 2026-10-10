@@ -13,6 +13,8 @@
 | [03 — Modèles et données](./03-modeles-et-donnees.md) | ORM Prisma, entités, relations, enums, index. |
 | [04 — Flux et logique métier](./04-flux-et-logic-metier.md) | Flux critiques et diagrammes de séquence. |
 | [05 — Guide d'installation et scripts](./05-guide-installation-et-scripts.md) | Scripts npm, lancement local, tests. |
+| [06 — Conventions et développement](./06-conventions-et-developpement.md) | Conventions back/front, query keys, tests, workflow migration, déploiement. |
+| [07 — État des lieux et dette technique](./07-etat-des-lieux-et-dette-technique.md) | Constats, incohérences, points à décider. |
 
 ## Aperçu général
 
