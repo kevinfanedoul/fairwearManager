@@ -15,23 +15,42 @@ export async function GET(request: NextRequest) {
   const type = requestedType && Object.values(ClientType).includes(requestedType as ClientType)
     ? requestedType as ClientType
     : undefined
+  const requestedLetter = (searchParams.get('letter') ?? '').toUpperCase()
+  const letter = /^[A-Z]$/.test(requestedLetter) ? requestedLetter : ''
   const page = parseInt(searchParams.get('page') ?? '1')
   const limit = parseInt(searchParams.get('limit') ?? '50')
   const sortBy = searchParams.get('sortBy') ?? 'name'
   const sortOrder = searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc'
 
-  const where = {
+  const where: Prisma.ClientWhereInput = {
     active: true,
     ...(type && { type }),
-    ...(search && {
+  }
+
+  const andConditions: Prisma.ClientWhereInput[] = []
+
+  if (search) {
+    andConditions.push({
       OR: [
         { company: { contains: search, mode: 'insensitive' as const } },
         { firstName: { contains: search, mode: 'insensitive' as const } },
         { lastName: { contains: search, mode: 'insensitive' as const } },
         { email: { contains: search, mode: 'insensitive' as const } },
       ],
-    }),
+    })
   }
+
+  if (letter) {
+    andConditions.push({
+      OR: [
+        { company: { startsWith: letter, mode: 'insensitive' as const } },
+        { company: null, lastName: { startsWith: letter, mode: 'insensitive' as const } },
+        { company: null, lastName: null, firstName: { startsWith: letter, mode: 'insensitive' as const } },
+      ],
+    })
+  }
+
+  if (andConditions.length) where.AND = andConditions
 
   const textSort = (direction: 'asc' | 'desc'): Prisma.SortOrderInput => ({
     sort: direction,

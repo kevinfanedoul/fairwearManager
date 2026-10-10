@@ -34,8 +34,11 @@ const typeVariants: Record<string, 'info' | 'success' | 'warning' | 'muted'> = {
   STUDIO: 'muted',
 }
 
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+
 export function ClientsTable() {
   const [search, setSearch] = useState('')
+  const [letter, setLetter] = useState('')
   const [type, setType] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<SortField>('name')
@@ -44,13 +47,14 @@ export function ClientsTable() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, type, sortBy, sortOrder])
+  }, [search, letter, type, sortBy, sortOrder])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['clients', search, type, page, sortBy, sortOrder],
+    queryKey: ['clients', search, letter, type, page, sortBy, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
+      if (letter) params.set('letter', letter)
       if (type !== 'all') params.set('type', type)
       params.set('page', String(page))
       params.set('limit', String(limit))
@@ -117,7 +121,10 @@ export function ClientsTable() {
             placeholder="Rechercher un client…"
             className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              if (letter) setLetter('')
+            }}
           />
         </div>
         <Select value={type} onValueChange={(v) => setType(v ?? 'all')}>
@@ -131,6 +138,29 @@ export function ClientsTable() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setLetter('')}
+          className={`px-2.5 py-1 rounded-md text-sm font-medium transition-colors ${letter === '' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          Tous
+        </button>
+        {ALPHABET.map((l) => (
+          <button
+            key={l}
+            type="button"
+            onClick={() => {
+              setLetter(letter === l ? '' : l)
+              setSearch('')
+            }}
+            className={`px-2.5 py-1 rounded-md text-sm font-medium transition-colors ${letter === l ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            {l}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
