@@ -244,7 +244,7 @@ function formatClientName(order: OrderPDFProps['order']) {
 }
 
 function formatClientAddress(order: OrderPDFProps['order']) {
-  return [order.client.address, order.client.city].filter(Boolean).join(' - ') || 'ADRESSE NON RENSEIGNÉE'
+  return [order.client.address, order.client.city].filter(Boolean).join(' - ')
 }
 
 function sizes(item: OrderPDFItem) {

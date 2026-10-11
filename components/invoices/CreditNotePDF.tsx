@@ -93,7 +93,7 @@ function formatClientName(creditNote: CreditNotePDFProps['creditNote']) {
 }
 
 function formatClientAddress(creditNote: CreditNotePDFProps['creditNote']) {
-  return [creditNote.client.address, creditNote.client.city].filter(Boolean).join(' - ') || 'ADRESSE NON RENSEIGNÉE'
+  return [creditNote.client.address, creditNote.client.city].filter(Boolean).join(' - ')
 }
 
 export function CreditNotePDF({ creditNote }: CreditNotePDFProps) {

@@ -253,7 +253,7 @@ function formatClientName(invoice: InvoicePDFProps['invoice']) {
 }
 
 function formatClientAddress(invoice: InvoicePDFProps['invoice']) {
-  return [invoice.client.address, invoice.client.city].filter(Boolean).join(' - ') || 'ADRESSE NON RENSEIGNÉE'
+  return [invoice.client.address, invoice.client.city].filter(Boolean).join(' - ')
 }
 
 function formatAmountForWords(amount: number, currency: OrderCurrency) {
