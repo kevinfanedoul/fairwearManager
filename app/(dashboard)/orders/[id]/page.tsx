@@ -9,6 +9,7 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getVATRateForCurrency } from '@/lib/calculations/invoice'
 import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, type OrderStatus, type OrderType } from '@/types'
+import { SIZE_COLUMNS } from '@/lib/order-sizes'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Check, Download, FilePenLine } from 'lucide-react'
@@ -16,10 +17,13 @@ import { Check, Download, FilePenLine } from 'lucide-react'
 type OrderItemView = {
   id: string
   designation: string
+  sizeXS: number
   sizeS: number
   sizeM: number
   sizeL: number
   sizeXL: number
+  sizeXXL: number
+  sizeXXXL: number
   sizeTU: number
   quantity: number
   unitPrice: number
@@ -377,16 +381,24 @@ export default function OrderDetailPage() {
             </table>
           ) : (
             <table className="w-full text-sm">
-              <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Désignation</th><th className="text-center pb-2">S</th><th className="text-center pb-2">M</th><th className="text-center pb-2">L</th><th className="text-center pb-2">XL</th><th className="text-center pb-2">TU</th><th className="text-center pb-2">Qté</th><th className="text-right pb-2">Prix unit.</th><th className="text-right pb-2">Total</th></tr></thead>
+              <thead>
+                <tr className="border-b text-slate-500">
+                  <th className="text-left pb-2">Désignation</th>
+                  {SIZE_COLUMNS.map((col) => (
+                    <th key={col.key} className="text-center pb-2">{col.label}</th>
+                  ))}
+                  <th className="text-center pb-2">Qté</th>
+                  <th className="text-right pb-2">Prix unit.</th>
+                  <th className="text-right pb-2">Total</th>
+                </tr>
+              </thead>
               <tbody>
                 {order.items?.map((item: OrderItemView) => (
                   <tr key={item.id} className="border-b last:border-0">
                     <td className="py-2">{item.designation}</td>
-                    <td className="text-center">{item.sizeS || '—'}</td>
-                    <td className="text-center">{item.sizeM || '—'}</td>
-                    <td className="text-center">{item.sizeL || '—'}</td>
-                    <td className="text-center">{item.sizeXL || '—'}</td>
-                    <td className="text-center">{item.sizeTU || '—'}</td>
+                    {SIZE_COLUMNS.map((col) => (
+                      <td key={col.key} className="text-center">{item[col.key] || '—'}</td>
+                    ))}
                     <td className="text-center">{item.quantity}</td>
                     <td className="text-right"><CurrencyDisplay amount={item.unitPrice} currency={order.currency} /></td>
                     <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>

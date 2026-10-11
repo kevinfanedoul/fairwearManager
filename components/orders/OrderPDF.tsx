@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatCurrency, type OrderCurrency } from '@/lib/currencies'
 import { getVATRateForCurrency } from '@/lib/calculations/invoice'
+import { SIZE_COLUMNS } from '@/lib/order-sizes'
 
 const accent = '#f4a46f'
 const dark = '#111827'
@@ -198,10 +199,13 @@ const styles = StyleSheet.create({
 
 type OrderPDFItem = {
   designation: string
+  sizeXS: number
   sizeS: number
   sizeM: number
   sizeL: number
   sizeXL: number
+  sizeXXL: number
+  sizeXXXL: number
   sizeTU: number
   quantity: number
   unitPrice: number
@@ -253,6 +257,12 @@ export function OrderPDF({ order }: OrderPDFProps) {
   const clientAddress = formatClientAddress(order)
   const vatRate = getVATRateForCurrency(order.currency)
   const tvaAmount = Math.round(order.totalHT * vatRate * 100) / 100
+
+  const visibleSizeColumns = SIZE_COLUMNS.filter((col) =>
+    order.items.some((item) => (item[col.key] ?? 0) > 0)
+  )
+  const sizeColumns = visibleSizeColumns.length > 0 ? visibleSizeColumns : SIZE_COLUMNS
+  const sizeWidth = `${(30 / sizeColumns.length).toFixed(2)}%`
 
   return (
     <Document>
@@ -381,31 +391,21 @@ export function OrderPDF({ order }: OrderPDFProps) {
           ) : (
             <>
               <View style={styles.tableHeader}>
-                <View style={[styles.cellBase, { width: '25%' }]}>
+                <View style={[styles.cellBase, { width: '30%' }]}>
                   <Text style={styles.headText}>Désignation</Text>
                 </View>
-                <View style={[styles.cellBase, { width: '6%' }]}>
-                  <Text style={styles.headText}>S</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '6%' }]}>
-                  <Text style={styles.headText}>M</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '6%' }]}>
-                  <Text style={styles.headText}>L</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '6%' }]}>
-                  <Text style={styles.headText}>XL</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '6%' }]}>
-                  <Text style={styles.headText}>TU</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '8%' }]}>
+                {sizeColumns.map((col) => (
+                  <View key={col.key} style={[styles.cellBase, { width: sizeWidth }]}>
+                    <Text style={styles.headText}>{col.label}</Text>
+                  </View>
+                ))}
+                <View style={[styles.cellBase, { width: '7%' }]}>
                   <Text style={styles.headText}>Qté</Text>
                 </View>
-                <View style={[styles.cellBase, { width: '16%' }]}>
+                <View style={[styles.cellBase, { width: '14%' }]}>
                   <Text style={styles.headText}>Prix unit.</Text>
                 </View>
-                <View style={[styles.cellBase, styles.cellLast, { width: '21%' }]}>
+                <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                   <Text style={styles.headText}>Total</Text>
                 </View>
               </View>
@@ -415,61 +415,51 @@ export function OrderPDF({ order }: OrderPDFProps) {
                   key={`${item.designation}-${index}`}
                   style={index === order.items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
                 >
-                  <View style={[styles.cellBase, { width: '25%' }]}>
+                  <View style={[styles.cellBase, { width: '30%' }]}>
                     <Text style={styles.textLeft}>{item.designation}</Text>
                   </View>
-                  <View style={[styles.cellBase, { width: '6%' }]}>
-                    <Text style={styles.textCenter}>{item.sizeS || '—'}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '6%' }]}>
-                    <Text style={styles.textCenter}>{item.sizeM || '—'}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '6%' }]}>
-                    <Text style={styles.textCenter}>{item.sizeL || '—'}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '6%' }]}>
-                    <Text style={styles.textCenter}>{item.sizeXL || '—'}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '6%' }]}>
-                    <Text style={styles.textCenter}>{item.sizeTU || '—'}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '8%' }]}>
+                  {sizeColumns.map((col) => (
+                    <View key={col.key} style={[styles.cellBase, { width: sizeWidth }]}>
+                      <Text style={styles.textCenter}>{item[col.key] || '—'}</Text>
+                    </View>
+                  ))}
+                  <View style={[styles.cellBase, { width: '7%' }]}>
                     <Text style={styles.textCenter}>{item.quantity}</Text>
                   </View>
-                  <View style={[styles.cellBase, { width: '16%' }]}>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
                     <Text style={styles.textRight}>{formatCurrency(item.unitPrice, order.currency)}</Text>
                   </View>
-                  <View style={[styles.cellBase, styles.cellLast, { width: '21%' }]}>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                     <Text style={styles.textRight}>{formatCurrency(item.totalPrice, order.currency)}</Text>
                   </View>
                 </View>
               ))}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '79%' }]}>
+                <View style={[styles.cellBase, { width: '81%' }]}>
                   <Text style={styles.totalLabel}>Total HT</Text>
                 </View>
-                <View style={[styles.cellBase, styles.cellLast, { width: '21%' }]}>
+                <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
                 </View>
               </View>
 
               {vatRate > 0 && (
                 <View style={styles.totalRow}>
-                  <View style={[styles.cellBase, { width: '79%' }]}>
+                  <View style={[styles.cellBase, { width: '81%' }]}>
                     <Text style={styles.totalLabel}>TVA {Math.round(vatRate * 100)}%</Text>
                   </View>
-                  <View style={[styles.cellBase, styles.cellLast, { width: '21%' }]}>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                     <Text style={styles.totalValue}>{formatCurrency(tvaAmount, order.currency)}</Text>
                   </View>
                 </View>
               )}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '79%' }]}>
+                <View style={[styles.cellBase, { width: '81%' }]}>
                   <Text style={styles.totalLabel}>Total TTC</Text>
                 </View>
-                <View style={[styles.cellBase, styles.cellLast, { width: '21%' }]}>
+                <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(order.totalTTC, order.currency)}</Text>
                 </View>
               </View>

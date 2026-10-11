@@ -2,10 +2,13 @@ import { z } from 'zod'
 
 export const orderItemSchema = z.object({
   designation: z.string().min(1, 'Désignation requise'),
+  sizeXS: z.number().int().min(0).default(0),
   sizeS: z.number().int().min(0).default(0),
   sizeM: z.number().int().min(0).default(0),
   sizeL: z.number().int().min(0).default(0),
   sizeXL: z.number().int().min(0).default(0),
+  sizeXXL: z.number().int().min(0).default(0),
+  sizeXXXL: z.number().int().min(0).default(0),
   sizeTU: z.number().int().min(0).default(0),
   quantity: z.number().int().min(0).default(0),
   unitPrice: z.number().min(0).default(0),

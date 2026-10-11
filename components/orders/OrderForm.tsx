@@ -24,10 +24,13 @@ type OrderFormProps = {
 
 const emptyProductItem = {
   designation: '',
+  sizeXS: 0,
   sizeS: 0,
   sizeM: 0,
   sizeL: 0,
   sizeXL: 0,
+  sizeXXL: 0,
+  sizeXXXL: 0,
   sizeTU: 0,
   quantity: 0,
   unitPrice: 0,

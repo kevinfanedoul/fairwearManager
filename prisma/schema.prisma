@@ -130,10 +130,13 @@ model OrderItem {
   orderId     String
   order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   designation String
+  sizeXS      Int     @default(0)
   sizeS       Int     @default(0)
   sizeM       Int     @default(0)
   sizeL       Int     @default(0)
   sizeXL      Int     @default(0)
+  sizeXXL     Int     @default(0)
+  sizeXXXL    Int     @default(0)
   sizeTU      Int     @default(0)
   quantity          Int     @default(0)
   unitPrice         Decimal @db.Decimal(10, 2)

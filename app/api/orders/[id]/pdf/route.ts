@@ -45,10 +45,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         },
         items: order.items.map((item) => ({
           designation: item.designation,
+          sizeXS: item.sizeXS,
           sizeS: item.sizeS,
           sizeM: item.sizeM,
           sizeL: item.sizeL,
           sizeXL: item.sizeXL,
+          sizeXXL: item.sizeXXL,
+          sizeXXXL: item.sizeXXXL,
           sizeTU: item.sizeTU,
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),

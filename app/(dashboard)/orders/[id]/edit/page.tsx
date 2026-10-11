@@ -16,10 +16,13 @@ type EditableOrder = {
   notes: string | null
   items: Array<{
     designation: string
+    sizeXS: number
     sizeS: number
     sizeM: number
     sizeL: number
     sizeXL: number
+    sizeXXL: number
+    sizeXXXL: number
     sizeTU: number
     quantity: number
     unitPrice: number
@@ -44,10 +47,13 @@ function toOrderInput(order: EditableOrder): OrderInput {
     notes: order.notes ?? '',
     items: order.items.map((item) => ({
       designation: item.designation,
+      sizeXS: item.sizeXS,
       sizeS: item.sizeS,
       sizeM: item.sizeM,
       sizeL: item.sizeL,
       sizeXL: item.sizeXL,
+      sizeXXL: item.sizeXXL,
+      sizeXXXL: item.sizeXXXL,
       sizeTU: item.sizeTU,
       quantity: item.quantity,
       unitPrice: Number(item.unitPrice),

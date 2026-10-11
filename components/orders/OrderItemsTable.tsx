@@ -7,9 +7,22 @@ import { FormField, FormControl, FormItem, FormMessage } from '@/components/ui/f
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Trash2, Plus } from 'lucide-react'
 import type { OrderInput } from '@/lib/validators/order'
+import { SIZE_COLUMNS } from '@/lib/order-sizes'
 import { getVATRateForCurrency } from '@/lib/calculations/invoice'
 
-const sizeFields = ['sizeS', 'sizeM', 'sizeL', 'sizeXL', 'sizeTU'] as const
+const emptyProductItem = {
+  designation: '',
+  sizeXS: 0,
+  sizeS: 0,
+  sizeM: 0,
+  sizeL: 0,
+  sizeXL: 0,
+  sizeXXL: 0,
+  sizeXXXL: 0,
+  sizeTU: 0,
+  quantity: 0,
+  unitPrice: 0,
+}
 
 export function OrderItemsTable() {
   const { control, watch, setValue } = useFormContext<OrderInput>()
@@ -22,7 +35,7 @@ export function OrderItemsTable() {
     const item = items[index]
     if (!item) return 0
 
-    return sizeFields.reduce((sum, size) => sum + (item[size] ?? 0), 0)
+    return SIZE_COLUMNS.reduce((sum, col) => sum + (item[col.key] ?? 0), 0)
   }
 
   function lineTotal(index: number) {
@@ -43,11 +56,9 @@ export function OrderItemsTable() {
           <thead>
             <tr className="border-b text-slate-500 text-left">
               <th className="pb-2 pr-2">Désignation</th>
-              <th className="pb-2 px-2 text-center">S</th>
-              <th className="pb-2 px-2 text-center">M</th>
-              <th className="pb-2 px-2 text-center">L</th>
-              <th className="pb-2 px-2 text-center">XL</th>
-              <th className="pb-2 px-2 text-center">TU</th>
+              {SIZE_COLUMNS.map((col) => (
+                <th key={col.key} className="pb-2 px-2 text-center">{col.label}</th>
+              ))}
               <th className="pb-2 px-2 text-center">Qté</th>
               <th className="pb-2 px-2 text-right">Prix unit.</th>
               <th className="pb-2 px-2 text-right">Total</th>
@@ -62,15 +73,15 @@ export function OrderItemsTable() {
                     <FormItem><FormControl><Input {...field} placeholder="T-shirt blanc" /></FormControl><FormMessage /></FormItem>
                   )} />
                 </td>
-                {sizeFields.map((size) => (
-                  <td key={size} className="py-2 px-2">
-                    <FormField control={control} name={`items.${index}.${size}`} render={({ field }) => (
-                      <FormItem><FormControl><Input {...field} type="number" min="0" className="w-14 text-center" onChange={e => {
+                {SIZE_COLUMNS.map((col) => (
+                  <td key={col.key} className="py-2 px-2">
+                    <FormField control={control} name={`items.${index}.${col.key}`} render={({ field }) => (
+                      <FormItem><FormControl><Input {...field} type="number" min="0" className="w-12 text-center" onChange={e => {
                         const nextValue = parseInt(e.target.value) || 0
                         field.onChange(nextValue)
 
-                        const nextQuantity = sizeFields.reduce((sum, currentSize) => {
-                          const sizeValue = currentSize === size ? nextValue : (items[index]?.[currentSize] ?? 0)
+                        const nextQuantity = SIZE_COLUMNS.reduce((sum, currentCol) => {
+                          const sizeValue = currentCol.key === col.key ? nextValue : (items[index]?.[currentCol.key] ?? 0)
                           return sum + sizeValue
                         }, 0)
 
@@ -107,7 +118,7 @@ export function OrderItemsTable() {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => append({ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 })}
+        onClick={() => append(emptyProductItem)}
       >
         <Plus size={14} className="mr-2" />Ajouter une ligne
       </Button>
