@@ -46,12 +46,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ? {
             type: invoice.order.type,
             currency: invoice.order.currency as 'MAD' | 'EUR' | 'GBP' | 'USD',
-            items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown; patronage: unknown; proto: unknown; gradationSizes: unknown; gradationUnitPrice: unknown; gradationTotal: unknown; kind: 'BREAKDOWN' | 'FLAT'; flatPrice: unknown }) => ({
+            items: invoice.order.items.map((item: { designation: string; sizeXS: number; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeXXL: number; sizeXXXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown; patronage: unknown; proto: unknown; gradationSizes: unknown; gradationUnitPrice: unknown; gradationTotal: unknown; kind: 'BREAKDOWN' | 'FLAT'; flatPrice: unknown }) => ({
               designation: item.designation,
+              sizeXS: item.sizeXS,
               sizeS: item.sizeS,
               sizeM: item.sizeM,
               sizeL: item.sizeL,
               sizeXL: item.sizeXL,
+              sizeXXL: item.sizeXXL,
+              sizeXXXL: item.sizeXXXL,
               sizeTU: item.sizeTU,
               quantity: item.quantity,
               unitPrice: Number(item.unitPrice),

@@ -2,6 +2,7 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatCurrency, type OrderCurrency } from '@/lib/currencies'
+import { SIZE_COLUMNS } from '@/lib/order-sizes'
 
 const accent = '#f4a46f'
 const dark = '#111827'
@@ -201,10 +202,13 @@ const styles = StyleSheet.create({
 
 interface InvoiceItem {
   designation: string
+  sizeXS: number
   sizeS: number
   sizeM: number
   sizeL: number
   sizeXL: number
+  sizeXXL: number
+  sizeXXXL: number
   sizeTU: number
   quantity: number
   unitPrice: number
@@ -265,23 +269,17 @@ function quantityLabel(item: InvoiceItem) {
   return String(item.quantity || 0)
 }
 
-function sizes(item: InvoiceItem) {
-  const values = [
-    item.sizeS ? `S:${item.sizeS}` : null,
-    item.sizeM ? `M:${item.sizeM}` : null,
-    item.sizeL ? `L:${item.sizeL}` : null,
-    item.sizeXL ? `XL:${item.sizeXL}` : null,
-    item.sizeTU ? `TU:${item.sizeTU}` : null,
-  ].filter(Boolean)
-
-  return values.join(' ') || '—'
-}
-
 export function InvoicePDF({ invoice }: InvoicePDFProps) {
   const clientName = formatClientName(invoice)
   const clientAddress = formatClientAddress(invoice)
   const currency = invoice.order?.currency ?? invoice.currency
   const items = invoice.order?.items ?? []
+
+  const visibleSizeColumns = SIZE_COLUMNS.filter((col) =>
+    items.some((item) => (item[col.key] ?? 0) > 0)
+  )
+  const sizeColumns = visibleSizeColumns.length > 0 ? visibleSizeColumns : SIZE_COLUMNS
+  const sizeWidth = `${(30 / sizeColumns.length).toFixed(2)}%`
 
   return (
     <Document>
@@ -404,16 +402,18 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
                 <View style={[styles.cellBase, { width: '30%' }]}>
                   <Text style={styles.headText}>Désignation</Text>
                 </View>
-                <View style={[styles.cellBase, { width: '20%' }]}>
-                  <Text style={styles.headText}>Tailles</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '10%' }]}>
+                {sizeColumns.map((col) => (
+                  <View key={col.key} style={[styles.cellBase, { width: sizeWidth }]}>
+                    <Text style={styles.headText}>{col.label}</Text>
+                  </View>
+                ))}
+                <View style={[styles.cellBase, { width: '7%' }]}>
                   <Text style={styles.headText}>Qté</Text>
                 </View>
-                <View style={[styles.cellBase, { width: '18%' }]}>
+                <View style={[styles.cellBase, { width: '14%' }]}>
                   <Text style={styles.headText}>Prix unit.</Text>
                 </View>
-                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                   <Text style={styles.headText}>Total</Text>
                 </View>
               </View>
@@ -426,49 +426,51 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
                   <View style={[styles.cellBase, { width: '30%' }]}>
                     <Text style={styles.textLeft}>{item.designation}</Text>
                   </View>
-                  <View style={[styles.cellBase, { width: '20%' }]}>
-                    <Text style={styles.textCenter}>{sizes(item)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '10%' }]}>
+                  {sizeColumns.map((col) => (
+                    <View key={col.key} style={[styles.cellBase, { width: sizeWidth }]}>
+                      <Text style={styles.textCenter}>{item[col.key] || '—'}</Text>
+                    </View>
+                  ))}
+                  <View style={[styles.cellBase, { width: '7%' }]}>
                     <Text style={styles.textCenter}>{quantityLabel(item)}</Text>
                   </View>
-                  <View style={[styles.cellBase, { width: '18%' }]}>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
                     <Text style={styles.textRight}>{formatCurrency(item.unitPrice, currency)}</Text>
                   </View>
-                  <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                     <Text style={styles.textRight}>{formatCurrency(item.totalPrice, currency)}</Text>
                   </View>
                 </View>
               ))}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '78%' }]}>
+                <View style={[styles.cellBase, { width: '81%' }]}>
                   <Text style={styles.totalLabel}>Total HT</Text>
                 </View>
-                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(invoice.totalHT, currency)}</Text>
                 </View>
               </View>
 
               {invoice.tvaRate > 0 && (
                 <View style={styles.totalRow}>
-                  <View style={[styles.cellBase, { width: '78%' }]}>
+                  <View style={[styles.cellBase, { width: '81%' }]}>
                     <Text style={styles.totalLabel}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
                   </View>
-                  <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                     <Text style={styles.totalValue}>{formatCurrency(invoice.tvaAmount, currency)}</Text>
                   </View>
                 </View>
               )}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '78%' }]}>
+                <View style={[styles.cellBase, { width: '81%' }]}>
                   <Text style={styles.totalLabel}>
                     Total TTC
                     {invoice.stampDuty > 0 ? ` (timbre ${formatCurrency(invoice.stampDuty, currency)} inclus)` : ''}
                   </Text>
                 </View>
-                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(invoice.totalTTC, currency)}</Text>
                 </View>
               </View>
