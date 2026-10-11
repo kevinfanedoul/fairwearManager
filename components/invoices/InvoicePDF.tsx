@@ -367,16 +367,24 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
               ))}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '74%' }]}>
+                <View style={[styles.cellBase, { width: '88%' }]}>
                   <Text style={styles.totalLabel}>Total HT</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '14%' }]}>
-                  <Text style={styles.textRight}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
                 </View>
                 <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(invoice.totalHT, currency)}</Text>
                 </View>
               </View>
+
+              {invoice.tvaRate > 0 && (
+                <View style={styles.totalRow}>
+                  <View style={[styles.cellBase, { width: '88%' }]}>
+                    <Text style={styles.totalLabel}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                    <Text style={styles.totalValue}>{formatCurrency(invoice.tvaAmount, currency)}</Text>
+                  </View>
+                </View>
+              )}
 
               <View style={styles.totalRow}>
                 <View style={[styles.cellBase, { width: '88%' }]}>
@@ -434,16 +442,24 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
               ))}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '60%' }]}>
+                <View style={[styles.cellBase, { width: '78%' }]}>
                   <Text style={styles.totalLabel}>Total HT</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '18%' }]}>
-                  <Text style={styles.textRight}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
                 </View>
                 <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(invoice.totalHT, currency)}</Text>
                 </View>
               </View>
+
+              {invoice.tvaRate > 0 && (
+                <View style={styles.totalRow}>
+                  <View style={[styles.cellBase, { width: '78%' }]}>
+                    <Text style={styles.totalLabel}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                    <Text style={styles.totalValue}>{formatCurrency(invoice.tvaAmount, currency)}</Text>
+                  </View>
+                </View>
+              )}
 
               <View style={styles.totalRow}>
                 <View style={[styles.cellBase, { width: '78%' }]}>

@@ -269,6 +269,7 @@ export function OrderPDF({ order }: OrderPDFProps) {
   const clientName = formatClientName(order)
   const clientAddress = formatClientAddress(order)
   const vatRate = getVATRateForCurrency(order.currency)
+  const tvaAmount = Math.round(order.totalHT * vatRate * 100) / 100
 
   return (
     <Document>
@@ -354,16 +355,24 @@ export function OrderPDF({ order }: OrderPDFProps) {
               ))}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '74%' }]}>
+                <View style={[styles.cellBase, { width: '88%' }]}>
                   <Text style={styles.totalLabel}>Total HT</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '14%' }]}>
-                  <Text style={styles.textRight}>TVA {Math.round(vatRate * 100)}%</Text>
                 </View>
                 <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
                 </View>
               </View>
+
+              {vatRate > 0 && (
+                <View style={styles.totalRow}>
+                  <View style={[styles.cellBase, { width: '88%' }]}>
+                    <Text style={styles.totalLabel}>TVA {Math.round(vatRate * 100)}%</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                    <Text style={styles.totalValue}>{formatCurrency(tvaAmount, order.currency)}</Text>
+                  </View>
+                </View>
+              )}
 
               <View style={styles.totalRow}>
                 <View style={[styles.cellBase, { width: '88%' }]}>
@@ -418,16 +427,24 @@ export function OrderPDF({ order }: OrderPDFProps) {
               ))}
 
               <View style={styles.totalRow}>
-                <View style={[styles.cellBase, { width: '60%' }]}>
+                <View style={[styles.cellBase, { width: '78%' }]}>
                   <Text style={styles.totalLabel}>Total HT</Text>
-                </View>
-                <View style={[styles.cellBase, { width: '18%' }]}>
-                  <Text style={styles.textRight}>TVA {Math.round(vatRate * 100)}%</Text>
                 </View>
                 <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
                   <Text style={styles.totalValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
                 </View>
               </View>
+
+              {vatRate > 0 && (
+                <View style={styles.totalRow}>
+                  <View style={[styles.cellBase, { width: '78%' }]}>
+                    <Text style={styles.totalLabel}>TVA {Math.round(vatRate * 100)}%</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                    <Text style={styles.totalValue}>{formatCurrency(tvaAmount, order.currency)}</Text>
+                  </View>
+                </View>
+              )}
 
               <View style={styles.totalRow}>
                 <View style={[styles.cellBase, { width: '78%' }]}>
