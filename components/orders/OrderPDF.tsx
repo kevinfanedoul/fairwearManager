@@ -493,7 +493,7 @@ export function OrderPDF({ order }: OrderPDFProps) {
           <View style={styles.lowerColRight}>
             <View style={styles.validityBox}>
               <View style={styles.validityHint}>
-                <Text style={styles.validityHintText}>Bon pour accord, Signature et date du client</Text>
+                <Text style={styles.validityHintText}>Bon pour accord,{'\n'}Signature et date du client</Text>
               </View>
             </View>
           </View>
