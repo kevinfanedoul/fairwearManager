@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,36 @@ const emptyStudyItem = {
   prototype: 0,
   gradationSizes: 0,
   gradationUnitPrice: 0,
+}
+
+type NumericInputProps = Omit<React.ComponentProps<'input'>, 'value' | 'onChange' | 'type'> & {
+  value?: number | null
+  onChange: (value: number) => void
+  integer?: boolean
+}
+
+function NumericInput({ value, onChange, integer = false, ...props }: NumericInputProps) {
+  const [text, setText] = useState(() => (value != null && value !== 0 ? String(value) : ''))
+
+  function handleChange(next: string) {
+    setText(next)
+    if (next.trim() === '') {
+      onChange(0)
+      return
+    }
+    const parsed = integer ? parseInt(next, 10) : parseFloat(next)
+    onChange(Number.isFinite(parsed) ? parsed : 0)
+  }
+
+  return (
+    <Input
+      {...props}
+      type="text"
+      inputMode={integer ? 'numeric' : 'decimal'}
+      value={text}
+      onChange={(e) => handleChange(e.target.value)}
+    />
+  )
 }
 
 export function StudyOrderItemsTable() {
@@ -66,22 +97,30 @@ export function StudyOrderItemsTable() {
                 </td>
                 <td className="py-2 px-2">
                   <FormField control={control} name={`items.${index}.patronage`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} type="number" min="0" step="0.01" className="w-24 text-right" onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl></FormItem>
+                    <FormItem><FormControl>
+                      <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
+                    </FormControl><FormMessage /></FormItem>
                   )} />
                 </td>
                 <td className="py-2 px-2">
                   <FormField control={control} name={`items.${index}.prototype`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} type="number" min="0" step="0.01" className="w-24 text-right" onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl></FormItem>
+                    <FormItem><FormControl>
+                      <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
+                    </FormControl><FormMessage /></FormItem>
                   )} />
                 </td>
                 <td className="py-2 px-2">
                   <div className="flex items-center justify-center gap-1">
                     <FormField control={control} name={`items.${index}.gradationSizes`} render={({ field }) => (
-                      <FormItem><FormControl><Input {...field} type="number" min="0" className="w-14 text-center" onChange={e => field.onChange(parseInt(e.target.value) || 0)} /></FormControl></FormItem>
+                      <FormItem><FormControl>
+                        <NumericInput integer value={field.value} onChange={field.onChange} className="w-14 text-center" placeholder="nb" />
+                      </FormControl><FormMessage /></FormItem>
                     )} />
                     <span className="text-slate-400">×</span>
                     <FormField control={control} name={`items.${index}.gradationUnitPrice`} render={({ field }) => (
-                      <FormItem><FormControl><Input {...field} type="number" min="0" step="0.01" className="w-20 text-right" onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl></FormItem>
+                      <FormItem><FormControl>
+                        <NumericInput value={field.value} onChange={field.onChange} className="w-20 text-right" placeholder="prix" />
+                      </FormControl><FormMessage /></FormItem>
                     )} />
                   </div>
                 </td>
