@@ -11,6 +11,7 @@ type EditableOrder = {
   type: 'PRODUCT' | 'STUDY'
   clientId: string
   currency: 'MAD' | 'EUR' | 'GBP' | 'USD'
+  fabricSupply: boolean
   deadline: string | null
   notes: string | null
   items: Array<{
@@ -38,6 +39,7 @@ function toOrderInput(order: EditableOrder): OrderInput {
     type: order.type,
     clientId: order.clientId,
     currency: order.currency,
+    fabricSupply: order.fabricSupply ?? false,
     deadline: order.deadline ? order.deadline.split('T')[0] : '',
     notes: order.notes ?? '',
     items: order.items.map((item) => ({

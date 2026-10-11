@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { type, items, clientId, currency, deadline, notes } = parsed.data
+  const { type, items, clientId, currency, fabricSupply, deadline, notes } = parsed.data
 
   const year = new Date().getFullYear()
   const prefix = `${orderReferencePrefix(type)}-${year}-`
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
       clientId,
       type,
       currency,
+      fabricSupply,
       deadline: deadline ? new Date(deadline) : undefined,
       notes,
       totalHT,

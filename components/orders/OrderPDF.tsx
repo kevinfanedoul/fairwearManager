@@ -219,6 +219,7 @@ type OrderPDFProps = {
   order: {
     reference: string
     type: 'PRODUCT' | 'STUDY'
+    fabricSupply: boolean
     orderDate: string
     deadline?: string | null
     notes?: string | null
@@ -279,7 +280,11 @@ export function OrderPDF({ order }: OrderPDFProps) {
         <View style={styles.table}>
           <View style={styles.tableTypeBand}>
             <Text style={styles.tableTypeText}>
-              {order.type === 'STUDY' ? "Devis bureau d'étude" : 'Devis production'}
+              {order.type === 'STUDY'
+                ? "Devis bureau d'étude"
+                : order.fabricSupply
+                  ? 'Devis production - Avec fourniture de tissu'
+                  : 'Devis production - Sans fourniture de tissu'}
             </Text>
           </View>
           {order.type === 'STUDY' ? (

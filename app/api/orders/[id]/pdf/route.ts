@@ -28,6 +28,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       order: {
         reference: order.reference,
         type: order.type,
+        fabricSupply: order.fabricSupply,
         orderDate: order.orderDate.toISOString(),
         deadline: order.deadline?.toISOString() ?? null,
         notes: order.notes,

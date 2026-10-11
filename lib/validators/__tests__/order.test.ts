@@ -74,6 +74,24 @@ describe('orderSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts and defaults fabricSupply for a PRODUCT order', () => {
+    const result = orderSchema.safeParse({
+      type: 'PRODUCT',
+      clientId: '550e8400-e29b-41d4-a716-446655440000',
+      fabricSupply: true,
+      items: [
+        {
+          designation: 'T-shirt blanc',
+          quantity: 10,
+          unitPrice: 25,
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.fabricSupply).toBe(true)
+  })
+
   it('rejects a PRODUCT order with a zero unit price', () => {
     const result = orderSchema.safeParse({
       type: 'PRODUCT',

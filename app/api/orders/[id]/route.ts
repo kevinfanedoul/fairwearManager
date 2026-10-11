@@ -81,7 +81,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { type, items, clientId, currency, deadline, notes } = parsed.data
+  const { type, items, clientId, currency, fabricSupply, deadline, notes } = parsed.data
   const itemsWithTotals = items.map((item) => {
     if (type === 'STUDY') {
       if (item.kind === 'FLAT') {
@@ -107,6 +107,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         clientId,
         type,
         currency,
+        fabricSupply,
         deadline: deadline ? new Date(deadline) : null,
         notes,
         totalHT,

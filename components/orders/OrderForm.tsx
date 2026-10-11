@@ -67,6 +67,7 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
       type: orderType,
       clientId: initialData?.clientId ?? preselectedClientId,
       currency: initialData?.currency ?? 'MAD',
+      fabricSupply: initialData?.fabricSupply ?? false,
       deadline: initialData?.deadline ?? '',
       notes: initialData?.notes ?? '',
       items: defaultItems,
@@ -80,6 +81,7 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
       type: orderType,
       clientId: initialData.clientId,
       currency: initialData.currency ?? 'MAD',
+      fabricSupply: initialData.fabricSupply ?? false,
       deadline: initialData.deadline ?? '',
       notes: initialData.notes ?? '',
       items: initialData.items.length > 0 ? initialData.items : [orderType === 'STUDY' ? emptyStudyItem : emptyProductItem],
@@ -173,6 +175,32 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
                   </FormItem>
                 )}
               />
+              {!isStudy && (
+                <FormField
+                  control={form.control}
+                  name="fabricSupply"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fourniture de tissu</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value === 'true')}
+                        value={field.value ? 'true' : 'false'}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Fourniture de tissu" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="true">Avec fourniture de tissu</SelectItem>
+                          <SelectItem value="false">Sans fourniture de tissu</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="deadline"
