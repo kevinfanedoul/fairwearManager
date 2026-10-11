@@ -49,6 +49,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
+    marginBottom: 4,
+  },
+  titleNote: {
+    textAlign: 'center',
+    fontSize: 9.5,
     marginBottom: 16,
   },
   table: {
@@ -160,29 +165,6 @@ const styles = StyleSheet.create({
     fontSize: 9.2,
     fontFamily: 'Helvetica-Bold',
   },
-  stampCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  stampInner: {
-    textAlign: 'center',
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    lineHeight: 1.3,
-  },
-  highlightText: {
-    color: '#c65a5a',
-    fontSize: 10.5,
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'center',
-    lineHeight: 1.5,
-  },
   footerBand: {
     backgroundColor: accent,
     height: 16,
@@ -288,7 +270,10 @@ export function OrderPDF({ order }: OrderPDFProps) {
         </View>
 
         <Text style={styles.titleLine}>
-          DEVIS N° {order.reference} Le {format(new Date(order.orderDate), 'dd/MM/yyyy', { locale: fr })}
+          {order.reference} le {format(new Date(order.orderDate), 'dd/MM/yyyy', { locale: fr })}
+        </Text>
+        <Text style={styles.titleNote}>
+          Devis valable 1 mois à compter de la date d&apos;édition du devis
         </Text>
 
         <View style={styles.table}>
@@ -459,9 +444,9 @@ export function OrderPDF({ order }: OrderPDFProps) {
         </View>
 
         <Text style={styles.infoLine}>
-          {order.deadline
-            ? `Livraison souhaitée : ${format(new Date(order.deadline), 'dd/MM/yyyy', { locale: fr })}`
-            : 'Devis valable sous réserve de confirmation'}
+          {order.type === 'STUDY'
+            ? 'Conditions de règlement : Le bureau d\'étude est à régler à la commande.'
+            : 'Conditions de règlement : 50% à la commande, le solde avant la livraison.'}
         </Text>
 
         <View style={styles.lowerBlocks}>
@@ -479,17 +464,7 @@ export function OrderPDF({ order }: OrderPDFProps) {
           <View style={styles.lowerColRight}>
             <View style={styles.validityBox}>
               <View style={styles.validityHint}>
-                <Text style={styles.validityHintText}>Bon pour accord et validation client</Text>
-              </View>
-              <View style={{ alignItems: 'center', marginTop: 18 }}>
-                <View style={styles.stampCircle}>
-                  <Text style={styles.stampInner}>FAIRWEAR{'\n'}MANUFACTURE</Text>
-                </View>
-                <Text style={styles.highlightText}>
-                  Devis édité le{'\n'}
-                  {format(new Date(order.orderDate), 'dd/MM/yyyy', { locale: fr })}{'\n'}
-                  {formatCurrency(order.totalTTC, order.currency)}
-                </Text>
+                <Text style={styles.validityHintText}>Bon pour accord, Signature et date du client</Text>
               </View>
             </View>
           </View>
