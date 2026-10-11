@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ORDER_CURRENCIES } from '@/lib/currencies'
 import { orderSchema, type OrderData, type OrderInput } from '@/lib/validators/order'
 import { OrderItemsTable } from './OrderItemsTable'
+import { StudyOrderItemsTable } from './StudyOrderItemsTable'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -21,10 +22,31 @@ type OrderFormProps = {
   initialData?: OrderInput
 }
 
+const emptyProductItem = {
+  designation: '',
+  sizeS: 0,
+  sizeM: 0,
+  sizeL: 0,
+  sizeXL: 0,
+  sizeTU: 0,
+  quantity: 0,
+  unitPrice: 0,
+}
+
+const emptyStudyItem = {
+  designation: '',
+  patronage: 0,
+  prototype: 0,
+  gradationSizes: 0,
+  gradationUnitPrice: 0,
+}
+
 export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedClientId = searchParams.get('clientId') ?? ''
+  const orderType: 'PRODUCT' | 'STUDY' =
+    initialData?.type ?? (searchParams.get('type') === 'STUDY' ? 'STUDY' : 'PRODUCT')
 
   const { data: clientsData } = useQuery({
     queryKey: ['clients-select'],
@@ -34,14 +56,19 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
     },
   })
 
+  const defaultItems = (initialData?.items?.length ?? 0) > 0
+    ? initialData!.items
+    : [orderType === 'STUDY' ? emptyStudyItem : emptyProductItem]
+
   const form = useForm<OrderInput, undefined, OrderData>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
+      type: orderType,
       clientId: initialData?.clientId ?? preselectedClientId,
       currency: initialData?.currency ?? 'MAD',
       deadline: initialData?.deadline ?? '',
       notes: initialData?.notes ?? '',
-      items: initialData?.items ?? [{ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 }],
+      items: defaultItems,
     },
   })
 
@@ -49,13 +76,14 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
     if (!initialData) return
 
     form.reset({
+      type: orderType,
       clientId: initialData.clientId,
       currency: initialData.currency ?? 'MAD',
       deadline: initialData.deadline ?? '',
       notes: initialData.notes ?? '',
-      items: initialData.items.length > 0 ? initialData.items : [{ designation: '', sizeS: 0, sizeM: 0, sizeL: 0, sizeXL: 0, sizeTU: 0, quantity: 0, unitPrice: 0 }],
+      items: initialData.items.length > 0 ? initialData.items : [orderType === 'STUDY' ? emptyStudyItem : emptyProductItem],
     })
-  }, [form, initialData])
+  }, [form, initialData, orderType])
 
   function clientLabel(c: { company: string | null; firstName: string | null; lastName: string | null }) {
     return c.company || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Client sans nom'
@@ -84,12 +112,17 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
     router.refresh()
   }
 
+  const isStudy = orderType === 'STUDY'
+  const title = mode === 'edit'
+    ? (isStudy ? 'Modifier le devis bureau d\'études' : 'Modifier le devis')
+    : (isStudy ? 'Nouveau devis bureau d\'études' : 'Nouveau devis')
+
   return (
     <FormProvider {...form}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">{mode === 'edit' ? 'Modifier le devis' : 'Nouveau devis'}</h1>
+            <h1 className="text-2xl font-bold">{title}</h1>
           </div>
 
           <Card>
@@ -171,9 +204,9 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Lignes produits</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{isStudy ? 'Lignes bureau d\'études' : 'Lignes produits'}</CardTitle></CardHeader>
             <CardContent>
-              <OrderItemsTable />
+              {isStudy ? <StudyOrderItemsTable /> : <OrderItemsTable />}
             </CardContent>
           </Card>
 

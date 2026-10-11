@@ -81,6 +81,7 @@ model Order {
   reference String      @unique
   clientId  String
   client    Client      @relation(fields: [clientId], references: [id])
+  type      OrderType   @default(PRODUCT)
   status    OrderStatus @default(QUOTE)
   orderDate DateTime    @default(now())
   deadline  DateTime?
@@ -113,6 +114,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum OrderType {
+  PRODUCT
+  STUDY
+}
+
 model OrderItem {
   id          String  @id @default(uuid())
   orderId     String
@@ -123,10 +129,15 @@ model OrderItem {
   sizeL       Int     @default(0)
   sizeXL      Int     @default(0)
   sizeTU      Int     @default(0)
-  quantity    Int     @default(0)
-  unitPrice   Decimal @db.Decimal(10, 2)
-  totalPrice  Decimal @db.Decimal(10, 2)
-  notes       String?
+  quantity          Int     @default(0)
+  unitPrice         Decimal @db.Decimal(10, 2)
+  totalPrice        Decimal @db.Decimal(10, 2)
+  patronage         Decimal? @db.Decimal(10, 2)
+  prototype         Decimal? @db.Decimal(10, 2)
+  gradationSizes    Int?
+  gradationUnitPrice Decimal? @db.Decimal(10, 2)
+  gradationTotal    Decimal? @db.Decimal(10, 2)
+  notes             String?
 
   creditNoteItems CreditNoteItem[]
 

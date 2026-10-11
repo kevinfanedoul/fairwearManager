@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
-import { ORDER_STATUS_LABELS } from '@/types'
+import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS } from '@/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const ALL_FILTER_VALUE = 'tous'
@@ -25,6 +25,7 @@ type ClientOption = {
 type OrderView = {
   id: string
   reference: string
+  type: keyof typeof ORDER_TYPE_LABELS
   status: keyof typeof ORDER_STATUS_LABELS
   orderDate: string
   deadline: string | null
@@ -178,7 +179,10 @@ export default function OrdersPage() {
               ) : orders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>
-                    <Link href={`/orders/${order.id}`} className="font-medium hover:underline">{order.reference}</Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/orders/${order.id}`} className="font-medium hover:underline">{order.reference}</Link>
+                      <StatusBadge label={ORDER_TYPE_LABELS[order.type] ?? ORDER_TYPE_LABELS.PRODUCT} variant="muted" />
+                    </div>
                   </TableCell>
                   <TableCell className="text-slate-600">
                     {clientLabel(order.client)}

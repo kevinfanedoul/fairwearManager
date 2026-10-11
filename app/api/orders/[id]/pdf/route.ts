@@ -27,6 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     React.createElement(OrderPDF as any, {
       order: {
         reference: order.reference,
+        type: order.type,
         orderDate: order.orderDate.toISOString(),
         deadline: order.deadline?.toISOString() ?? null,
         notes: order.notes,
@@ -51,6 +52,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
           totalPrice: Number(item.totalPrice),
+          patronage: item.patronage ? Number(item.patronage) : null,
+          prototype: item.prototype ? Number(item.prototype) : null,
+          gradationSizes: item.gradationSizes,
+          gradationUnitPrice: item.gradationUnitPrice ? Number(item.gradationUnitPrice) : null,
+          gradationTotal: item.gradationTotal ? Number(item.gradationTotal) : null,
         })),
       },
     })

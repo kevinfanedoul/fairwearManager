@@ -4,13 +4,19 @@ import type {
   UserRole,
   ClientType,
   OrderStatus,
+  OrderType,
   InvoiceStatus,
   PaymentMethod,
   CashEntryType,
   TodoStatus,
 } from '@prisma/client'
 
-export type { UserRole, ClientType, OrderStatus, InvoiceStatus, PaymentMethod, CashEntryType, TodoStatus }
+export type { UserRole, ClientType, OrderStatus, OrderType, InvoiceStatus, PaymentMethod, CashEntryType, TodoStatus }
+
+export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  PRODUCT: 'Produit',
+  STUDY: "Bureau d'études",
+}
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   QUOTE: 'Devis',

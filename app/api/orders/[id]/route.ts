@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { orderSchema } from '@/lib/validators/order'
-import { calculateOrderTotals } from '@/lib/calculations/invoice'
+import { calculateOrderTotalsFromPrices, calculateStudyGradationTotal, calculateStudyLineTotal } from '@/lib/calculations/invoice'
 
 const updateStatusSchema = z.object({
   status: z.enum(['QUOTE','CONFIRMED','SOURCING','STUDY','PRODUCTION','READY','DELIVERED','INVOICED','PAID','CANCELLED']),
@@ -81,12 +81,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { items, clientId, currency, deadline, notes } = parsed.data
-  const itemsWithTotals = items.map((item) => ({
-    ...item,
-    totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100,
-  }))
-  const { totalHT, totalTTC } = calculateOrderTotals(items, currency)
+  const { type, items, clientId, currency, deadline, notes } = parsed.data
+  const itemsWithTotals = items.map((item) => {
+    if (type === 'STUDY') {
+      const gradationTotal = calculateStudyGradationTotal(item)
+      const totalPrice = calculateStudyLineTotal({ ...item, gradationTotal })
+      return { ...item, gradationTotal, totalPrice }
+    }
+
+    return { ...item, totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100 }
+  })
+  const totalPrices = itemsWithTotals.map((item) => item.totalPrice)
+  const { totalHT, totalTTC } = calculateOrderTotalsFromPrices(totalPrices, currency)
 
   const order = await prisma.$transaction(async (tx) => {
     await tx.orderItem.deleteMany({ where: { orderId: id } })
@@ -95,6 +101,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       where: { id },
       data: {
         clientId,
+        type,
         currency,
         deadline: deadline ? new Date(deadline) : null,
         notes,

@@ -161,22 +161,24 @@ export default function InvoiceDetailPage() {
           >
             <Download size={16} className="mr-2" />Télécharger PDF
           </a>
-          <Dialog open={creditNoteOpen} onOpenChange={setCreditNoteOpen}>
-            <DialogTrigger
-              render={<button className={buttonVariants({ variant: 'outline' })} />}
-            >
-              <ReceiptText size={16} className="mr-2" />Créer un avoir
-            </DialogTrigger>
-            <DialogContent className="w-[min(96vw,72rem)] max-w-[min(96vw,72rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden">
-              <DialogHeader><DialogTitle>Créer un avoir client</DialogTitle></DialogHeader>
-              <CreditNoteForm
-                invoiceId={id}
-                currency={currency}
-                items={creditableItems}
-                onSuccess={() => setCreditNoteOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
+          {invoice.order?.type !== 'STUDY' && (
+            <Dialog open={creditNoteOpen} onOpenChange={setCreditNoteOpen}>
+              <DialogTrigger
+                render={<button className={buttonVariants({ variant: 'outline' })} />}
+              >
+                <ReceiptText size={16} className="mr-2" />Créer un avoir
+              </DialogTrigger>
+              <DialogContent className="w-[min(96vw,72rem)] max-w-[min(96vw,72rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden">
+                <DialogHeader><DialogTitle>Créer un avoir client</DialogTitle></DialogHeader>
+                <CreditNoteForm
+                  invoiceId={id}
+                  currency={currency}
+                  items={creditableItems}
+                  onSuccess={() => setCreditNoteOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
           {remaining > 0 && (
             <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
               <DialogTrigger

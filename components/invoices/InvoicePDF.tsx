@@ -209,6 +209,11 @@ interface InvoiceItem {
   quantity: number
   unitPrice: number
   totalPrice: number
+  patronage: number | null
+  prototype: number | null
+  gradationSizes: number | null
+  gradationUnitPrice: number | null
+  gradationTotal: number | null
 }
 
 interface InvoicePDFProps {
@@ -232,6 +237,7 @@ interface InvoicePDFProps {
       ice?: string | null
     }
     order?: {
+      type: 'PRODUCT' | 'STUDY'
       currency: OrderCurrency
       items: InvoiceItem[]
     } | null
@@ -296,70 +302,147 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
         </Text>
 
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <View style={[styles.cellBase, { width: '30%' }]}>
-              <Text style={styles.headText}>Désignation</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '20%' }]}>
-              <Text style={styles.headText}>Tailles</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '10%' }]}>
-              <Text style={styles.headText}>Qté</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '18%' }]}>
-              <Text style={styles.headText}>Prix unit.</Text>
-            </View>
-            <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-              <Text style={styles.headText}>Total</Text>
-            </View>
-          </View>
+          {invoice.order?.type === 'STUDY' ? (
+            <>
+              <View style={styles.tableHeader}>
+                <View style={[styles.cellBase, { width: '30%' }]}>
+                  <Text style={styles.headText}>Désignation</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.headText}>Patronage</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.headText}>Prototype</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '16%' }]}>
+                  <Text style={styles.headText}>Gradation</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.headText}>Total grad.</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                  <Text style={styles.headText}>Total</Text>
+                </View>
+              </View>
 
-          {items.map((item, index) => (
-            <View
-              key={`${item.designation}-${index}`}
-              style={index === items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
-            >
-              <View style={[styles.cellBase, { width: '30%' }]}>
-                <Text style={styles.textLeft}>{item.designation}</Text>
-              </View>
-              <View style={[styles.cellBase, { width: '20%' }]}>
-                <Text style={styles.textCenter}>{sizes(item)}</Text>
-              </View>
-              <View style={[styles.cellBase, { width: '10%' }]}>
-                <Text style={styles.textCenter}>{quantityLabel(item)}</Text>
-              </View>
-              <View style={[styles.cellBase, { width: '18%' }]}>
-                <Text style={styles.textRight}>{formatCurrency(item.unitPrice, currency)}</Text>
-              </View>
-              <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-                <Text style={styles.textRight}>{formatCurrency(item.totalPrice, currency)}</Text>
-              </View>
-            </View>
-          ))}
+              {items.map((item, index) => (
+                <View
+                  key={`${item.designation}-${index}`}
+                  style={index === items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
+                >
+                  <View style={[styles.cellBase, { width: '30%' }]}>
+                    <Text style={styles.textLeft}>{item.designation}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.patronage ?? 0, currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.prototype ?? 0, currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '16%' }]}>
+                    <Text style={styles.textCenter}>{item.gradationSizes ?? 0} × {formatCurrency(item.gradationUnitPrice ?? 0, currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.gradationTotal ?? 0, currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.totalPrice, currency)}</Text>
+                  </View>
+                </View>
+              ))}
 
-          <View style={styles.totalRow}>
-            <View style={[styles.cellBase, { width: '60%' }]}>
-              <Text style={styles.totalLabel}>Total HT</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '18%' }]}>
-              <Text style={styles.textRight}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
-            </View>
-            <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-              <Text style={styles.totalValue}>{formatCurrency(invoice.totalHT, currency)}</Text>
-            </View>
-          </View>
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '74%' }]}>
+                  <Text style={styles.totalLabel}>Total HT</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.textRight}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(invoice.totalHT, currency)}</Text>
+                </View>
+              </View>
 
-          <View style={styles.totalRow}>
-            <View style={[styles.cellBase, { width: '78%' }]}>
-              <Text style={styles.totalLabel}>
-                Total TTC
-                {invoice.stampDuty > 0 ? ` (timbre ${formatCurrency(invoice.stampDuty, currency)} inclus)` : ''}
-              </Text>
-            </View>
-            <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-              <Text style={styles.totalValue}>{formatCurrency(invoice.totalTTC, currency)}</Text>
-            </View>
-          </View>
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '88%' }]}>
+                  <Text style={styles.totalLabel}>
+                    Total TTC
+                    {invoice.stampDuty > 0 ? ` (timbre ${formatCurrency(invoice.stampDuty, currency)} inclus)` : ''}
+                  </Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(invoice.totalTTC, currency)}</Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.tableHeader}>
+                <View style={[styles.cellBase, { width: '30%' }]}>
+                  <Text style={styles.headText}>Désignation</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '20%' }]}>
+                  <Text style={styles.headText}>Tailles</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '10%' }]}>
+                  <Text style={styles.headText}>Qté</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '18%' }]}>
+                  <Text style={styles.headText}>Prix unit.</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <Text style={styles.headText}>Total</Text>
+                </View>
+              </View>
+
+              {items.map((item, index) => (
+                <View
+                  key={`${item.designation}-${index}`}
+                  style={index === items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
+                >
+                  <View style={[styles.cellBase, { width: '30%' }]}>
+                    <Text style={styles.textLeft}>{item.designation}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '20%' }]}>
+                    <Text style={styles.textCenter}>{sizes(item)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '10%' }]}>
+                    <Text style={styles.textCenter}>{quantityLabel(item)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '18%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.unitPrice, currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.totalPrice, currency)}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '60%' }]}>
+                  <Text style={styles.totalLabel}>Total HT</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '18%' }]}>
+                  <Text style={styles.textRight}>TVA {Math.round(invoice.tvaRate * 100)}%</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(invoice.totalHT, currency)}</Text>
+                </View>
+              </View>
+
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '78%' }]}>
+                  <Text style={styles.totalLabel}>
+                    Total TTC
+                    {invoice.stampDuty > 0 ? ` (timbre ${formatCurrency(invoice.stampDuty, currency)} inclus)` : ''}
+                  </Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(invoice.totalTTC, currency)}</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         <Text style={styles.amountWords}>

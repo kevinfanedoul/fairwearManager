@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getVATRateForCurrency } from '@/lib/calculations/invoice'
-import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types'
+import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, type OrderStatus, type OrderType } from '@/types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Check, Download, FilePenLine } from 'lucide-react'
@@ -24,11 +24,17 @@ type OrderItemView = {
   quantity: number
   unitPrice: number
   totalPrice: number
+  patronage: number | null
+  prototype: number | null
+  gradationSizes: number | null
+  gradationUnitPrice: number | null
+  gradationTotal: number | null
 }
 
 type OrderView = {
   id: string
   reference: string
+  type: OrderType
   status: OrderStatus
   orderDate: string
   deadline: string | null
@@ -154,8 +160,13 @@ export default function OrderDetailPage() {
       <div className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <div className="mb-2 inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-sky-700">
-              Espace devis
+            <div className="mb-2 inline-flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-sky-700">
+                Espace devis
+              </span>
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600">
+                {ORDER_TYPE_LABELS[order.type] ?? ORDER_TYPE_LABELS.PRODUCT}
+              </span>
             </div>
             <h1 className="text-2xl font-bold text-slate-950">{order.reference}</h1>
             <p className="mt-1 text-slate-600">{clientName}</p>
@@ -336,26 +347,44 @@ export default function OrderDetailPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Lignes produits</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{order.type === 'STUDY' ? 'Lignes bureau d\'études' : 'Lignes produits'}</CardTitle></CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Désignation</th><th className="text-center pb-2">S</th><th className="text-center pb-2">M</th><th className="text-center pb-2">L</th><th className="text-center pb-2">XL</th><th className="text-center pb-2">TU</th><th className="text-center pb-2">Qté</th><th className="text-right pb-2">Prix unit.</th><th className="text-right pb-2">Total</th></tr></thead>
-            <tbody>
-              {order.items?.map((item: OrderItemView) => (
-                <tr key={item.id} className="border-b last:border-0">
-                  <td className="py-2">{item.designation}</td>
-                  <td className="text-center">{item.sizeS || '—'}</td>
-                  <td className="text-center">{item.sizeM || '—'}</td>
-                  <td className="text-center">{item.sizeL || '—'}</td>
-                  <td className="text-center">{item.sizeXL || '—'}</td>
-                  <td className="text-center">{item.sizeTU || '—'}</td>
-                  <td className="text-center">{item.quantity}</td>
-                  <td className="text-right"><CurrencyDisplay amount={item.unitPrice} currency={order.currency} /></td>
-                  <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {order.type === 'STUDY' ? (
+            <table className="w-full text-sm">
+              <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Désignation</th><th className="text-right pb-2">Patronage</th><th className="text-right pb-2">Prototype</th><th className="text-right pb-2">Gradation</th><th className="text-right pb-2">Total gradations</th><th className="text-right pb-2">Total</th></tr></thead>
+              <tbody>
+                {order.items?.map((item: OrderItemView) => (
+                  <tr key={item.id} className="border-b last:border-0">
+                    <td className="py-2">{item.designation}</td>
+                    <td className="text-right"><CurrencyDisplay amount={item.patronage ?? 0} currency={order.currency} /></td>
+                    <td className="text-right"><CurrencyDisplay amount={item.prototype ?? 0} currency={order.currency} /></td>
+                    <td className="text-right">{item.gradationSizes ?? 0} × <CurrencyDisplay amount={item.gradationUnitPrice ?? 0} currency={order.currency} /></td>
+                    <td className="text-right"><CurrencyDisplay amount={item.gradationTotal ?? 0} currency={order.currency} /></td>
+                    <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-sm">
+              <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Désignation</th><th className="text-center pb-2">S</th><th className="text-center pb-2">M</th><th className="text-center pb-2">L</th><th className="text-center pb-2">XL</th><th className="text-center pb-2">TU</th><th className="text-center pb-2">Qté</th><th className="text-right pb-2">Prix unit.</th><th className="text-right pb-2">Total</th></tr></thead>
+              <tbody>
+                {order.items?.map((item: OrderItemView) => (
+                  <tr key={item.id} className="border-b last:border-0">
+                    <td className="py-2">{item.designation}</td>
+                    <td className="text-center">{item.sizeS || '—'}</td>
+                    <td className="text-center">{item.sizeM || '—'}</td>
+                    <td className="text-center">{item.sizeL || '—'}</td>
+                    <td className="text-center">{item.sizeXL || '—'}</td>
+                    <td className="text-center">{item.sizeTU || '—'}</td>
+                    <td className="text-center">{item.quantity}</td>
+                    <td className="text-right"><CurrencyDisplay amount={item.unitPrice} currency={order.currency} /></td>
+                    <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
     </div>

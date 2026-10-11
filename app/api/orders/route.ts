@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { type OrderStatus, type Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { orderSchema } from '@/lib/validators/order'
-import { calculateOrderTotals } from '@/lib/calculations/invoice'
-import { formatOrderReference } from '@/lib/calculations/order-reference'
+import { calculateOrderTotalsFromPrices, calculateStudyGradationTotal, calculateStudyLineTotal } from '@/lib/calculations/invoice'
+import { formatOrderReference, orderReferencePrefix } from '@/lib/calculations/order-reference'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -52,26 +52,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { items, clientId, currency, deadline, notes } = parsed.data
+  const { type, items, clientId, currency, deadline, notes } = parsed.data
 
   const year = new Date().getFullYear()
+  const prefix = `${orderReferencePrefix(type)}-${year}-`
   const lastOrder = await prisma.order.findFirst({
-    where: { reference: { startsWith: `DEVIS-${year}-` } },
+    where: { type, reference: { startsWith: prefix } },
     orderBy: { reference: 'desc' },
   })
-  const lastSeq = lastOrder ? parseInt(lastOrder.reference.split('-')[2]) : 0
-  const reference = formatOrderReference(year, lastSeq + 1)
+  const lastSeq = lastOrder ? parseInt(lastOrder.reference.split('-').pop() ?? '0', 10) : 0
+  const reference = formatOrderReference(type, year, lastSeq + 1)
 
-  const itemsWithTotals = items.map((item) => ({
-    ...item,
-    totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100,
-  }))
-  const { totalHT, totalTTC } = calculateOrderTotals(items, currency)
+  const itemsWithTotals = items.map((item) => {
+    if (type === 'STUDY') {
+      const gradationTotal = calculateStudyGradationTotal(item)
+      const totalPrice = calculateStudyLineTotal({ ...item, gradationTotal })
+      return { ...item, gradationTotal, totalPrice }
+    }
+
+    return { ...item, totalPrice: Math.round(item.quantity * item.unitPrice * 100) / 100 }
+  })
+  const totalPrices = itemsWithTotals.map((item) => item.totalPrice)
+  const { totalHT, totalTTC } = calculateOrderTotalsFromPrices(totalPrices, currency)
 
   const order = await prisma.order.create({
     data: {
       reference,
       clientId,
+      type,
       currency,
       deadline: deadline ? new Date(deadline) : undefined,
       notes,

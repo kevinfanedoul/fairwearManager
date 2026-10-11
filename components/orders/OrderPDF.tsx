@@ -212,11 +212,17 @@ type OrderPDFItem = {
   quantity: number
   unitPrice: number
   totalPrice: number
+  patronage: number | null
+  prototype: number | null
+  gradationSizes: number | null
+  gradationUnitPrice: number | null
+  gradationTotal: number | null
 }
 
 type OrderPDFProps = {
   order: {
     reference: string
+    type: 'PRODUCT' | 'STUDY'
     orderDate: string
     deadline?: string | null
     notes?: string | null
@@ -283,67 +289,141 @@ export function OrderPDF({ order }: OrderPDFProps) {
         </Text>
 
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <View style={[styles.cellBase, { width: '30%' }]}>
-              <Text style={styles.headText}>Désignation</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '20%' }]}>
-              <Text style={styles.headText}>Tailles</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '10%' }]}>
-              <Text style={styles.headText}>Qté</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '18%' }]}>
-              <Text style={styles.headText}>Prix unit.</Text>
-            </View>
-            <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-              <Text style={styles.headText}>Total</Text>
-            </View>
-          </View>
+          {order.type === 'STUDY' ? (
+            <>
+              <View style={styles.tableHeader}>
+                <View style={[styles.cellBase, { width: '30%' }]}>
+                  <Text style={styles.headText}>Désignation</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.headText}>Patronage</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.headText}>Prototype</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '16%' }]}>
+                  <Text style={styles.headText}>Gradation</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.headText}>Total grad.</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                  <Text style={styles.headText}>Total</Text>
+                </View>
+              </View>
 
-          {order.items.map((item, index) => (
-            <View
-              key={`${item.designation}-${index}`}
-              style={index === order.items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
-            >
-              <View style={[styles.cellBase, { width: '30%' }]}>
-                <Text style={styles.textLeft}>{item.designation}</Text>
-              </View>
-              <View style={[styles.cellBase, { width: '20%' }]}>
-                <Text style={styles.textCenter}>{sizes(item)}</Text>
-              </View>
-              <View style={[styles.cellBase, { width: '10%' }]}>
-                <Text style={styles.textCenter}>{item.quantity}</Text>
-              </View>
-              <View style={[styles.cellBase, { width: '18%' }]}>
-                <Text style={styles.textRight}>{formatCurrency(item.unitPrice, order.currency)}</Text>
-              </View>
-              <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-                <Text style={styles.textRight}>{formatCurrency(item.totalPrice, order.currency)}</Text>
-              </View>
-            </View>
-          ))}
+              {order.items.map((item, index) => (
+                <View
+                  key={`${item.designation}-${index}`}
+                  style={index === order.items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
+                >
+                  <View style={[styles.cellBase, { width: '30%' }]}>
+                    <Text style={styles.textLeft}>{item.designation}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.patronage ?? 0, order.currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.prototype ?? 0, order.currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '16%' }]}>
+                    <Text style={styles.textCenter}>{item.gradationSizes ?? 0} × {formatCurrency(item.gradationUnitPrice ?? 0, order.currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '14%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.gradationTotal ?? 0, order.currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.totalPrice, order.currency)}</Text>
+                  </View>
+                </View>
+              ))}
 
-          <View style={styles.totalRow}>
-            <View style={[styles.cellBase, { width: '60%' }]}>
-              <Text style={styles.totalLabel}>Total HT</Text>
-            </View>
-            <View style={[styles.cellBase, { width: '18%' }]}>
-              <Text style={styles.textRight}>TVA {Math.round(vatRate * 100)}%</Text>
-            </View>
-            <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-              <Text style={styles.totalValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
-            </View>
-          </View>
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '74%' }]}>
+                  <Text style={styles.totalLabel}>Total HT</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '14%' }]}>
+                  <Text style={styles.textRight}>TVA {Math.round(vatRate * 100)}%</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
+                </View>
+              </View>
 
-          <View style={styles.totalRow}>
-            <View style={[styles.cellBase, { width: '78%' }]}>
-              <Text style={styles.totalLabel}>Total TTC</Text>
-            </View>
-            <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
-              <Text style={styles.totalValue}>{formatCurrency(order.totalTTC, order.currency)}</Text>
-            </View>
-          </View>
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '88%' }]}>
+                  <Text style={styles.totalLabel}>Total TTC</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(order.totalTTC, order.currency)}</Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.tableHeader}>
+                <View style={[styles.cellBase, { width: '30%' }]}>
+                  <Text style={styles.headText}>Désignation</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '20%' }]}>
+                  <Text style={styles.headText}>Tailles</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '10%' }]}>
+                  <Text style={styles.headText}>Qté</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '18%' }]}>
+                  <Text style={styles.headText}>Prix unit.</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <Text style={styles.headText}>Total</Text>
+                </View>
+              </View>
+
+              {order.items.map((item, index) => (
+                <View
+                  key={`${item.designation}-${index}`}
+                  style={index === order.items.length - 1 ? [styles.row, styles.rowLast] : styles.row}
+                >
+                  <View style={[styles.cellBase, { width: '30%' }]}>
+                    <Text style={styles.textLeft}>{item.designation}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '20%' }]}>
+                    <Text style={styles.textCenter}>{sizes(item)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '10%' }]}>
+                    <Text style={styles.textCenter}>{item.quantity}</Text>
+                  </View>
+                  <View style={[styles.cellBase, { width: '18%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.unitPrice, order.currency)}</Text>
+                  </View>
+                  <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                    <Text style={styles.textRight}>{formatCurrency(item.totalPrice, order.currency)}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '60%' }]}>
+                  <Text style={styles.totalLabel}>Total HT</Text>
+                </View>
+                <View style={[styles.cellBase, { width: '18%' }]}>
+                  <Text style={styles.textRight}>TVA {Math.round(vatRate * 100)}%</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(order.totalHT, order.currency)}</Text>
+                </View>
+              </View>
+
+              <View style={styles.totalRow}>
+                <View style={[styles.cellBase, { width: '78%' }]}>
+                  <Text style={styles.totalLabel}>Total TTC</Text>
+                </View>
+                <View style={[styles.cellBase, styles.cellLast, { width: '22%' }]}>
+                  <Text style={styles.totalValue}>{formatCurrency(order.totalTTC, order.currency)}</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         <Text style={styles.infoLine}>

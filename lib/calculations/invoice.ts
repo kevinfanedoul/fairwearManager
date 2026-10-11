@@ -29,3 +29,28 @@ export function calculateOrderTotals(
   const totalTTC = Math.round((totalHT + tvaAmount) * 100) / 100
   return { totalHT, tvaAmount, totalTTC }
 }
+
+export function calculateStudyGradationTotal(
+  item: { gradationSizes?: number | null; gradationUnitPrice?: number | null }
+): number {
+  return Math.round((item.gradationSizes ?? 0) * (item.gradationUnitPrice ?? 0) * 100) / 100
+}
+
+export function calculateStudyLineTotal(
+  item: { patronage?: number | null; prototype?: number | null; gradationTotal?: number | null }
+): number {
+  const patronage = item.patronage ?? 0
+  const prototype = item.prototype ?? 0
+  const gradationTotal = item.gradationTotal ?? 0
+  return Math.round((patronage + prototype + gradationTotal) * 100) / 100
+}
+
+export function calculateOrderTotalsFromPrices(
+  totalPrices: number[],
+  currency: OrderCurrency = 'MAD'
+): { totalHT: number; tvaAmount: number; totalTTC: number } {
+  const totalHT = Math.round(totalPrices.reduce((sum, price) => sum + price, 0) * 100) / 100
+  const tvaAmount = calculateTVA(totalHT, getVATRateForCurrency(currency))
+  const totalTTC = Math.round((totalHT + tvaAmount) * 100) / 100
+  return { totalHT, tvaAmount, totalTTC }
+}

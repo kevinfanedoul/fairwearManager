@@ -40,8 +40,11 @@ export function ClientTabs({ clientId }: ClientTabsProps) {
           <StatusBadge label={CLIENT_TYPE_LABELS[client.type as keyof typeof CLIENT_TYPE_LABELS]} variant="info" />
         </div>
         <div className="flex gap-2">
-          <Link href={`/orders/new?clientId=${clientId}`}>
-            <Button><Plus size={16} className="mr-2" />Nouvelle commande</Button>
+          <Link href={`/orders/new?clientId=${clientId}&type=PRODUCT`}>
+            <Button><Plus size={16} className="mr-2" />Commande produit</Button>
+          </Link>
+          <Link href={`/orders/new?clientId=${clientId}&type=STUDY`}>
+            <Button variant="secondary"><Plus size={16} className="mr-2" />Commande bureau d&apos;études</Button>
           </Link>
           <Link href={`/clients/${clientId}/edit`}>
             <Button variant="outline">Modifier</Button>

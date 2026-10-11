@@ -39,4 +39,38 @@ describe('orderSchema', () => {
 
     expect(result.success).toBe(true)
   })
+
+  it('accepts a STUDY order with bureau d\'études fields', () => {
+    const result = orderSchema.safeParse({
+      type: 'STUDY',
+      clientId: '550e8400-e29b-41d4-a716-446655440000',
+      items: [
+        {
+          designation: 'Gradation modèle X',
+          patronage: 200,
+          prototype: 150,
+          gradationSizes: 4,
+          gradationUnitPrice: 35,
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a PRODUCT order with a zero unit price', () => {
+    const result = orderSchema.safeParse({
+      type: 'PRODUCT',
+      clientId: '550e8400-e29b-41d4-a716-446655440000',
+      items: [
+        {
+          designation: 'T-shirt blanc',
+          quantity: 10,
+          unitPrice: 0,
+        },
+      ],
+    })
+
+    expect(result.success).toBe(false)
+  })
 })

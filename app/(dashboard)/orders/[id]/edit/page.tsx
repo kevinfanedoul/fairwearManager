@@ -8,6 +8,7 @@ import type { OrderInput } from '@/lib/validators/order'
 type EditableOrder = {
   id: string
   status: string
+  type: 'PRODUCT' | 'STUDY'
   clientId: string
   currency: 'MAD' | 'EUR' | 'GBP' | 'USD'
   deadline: string | null
@@ -21,12 +22,18 @@ type EditableOrder = {
     sizeTU: number
     quantity: number
     unitPrice: number
+    patronage: number | null
+    prototype: number | null
+    gradationSizes: number | null
+    gradationUnitPrice: number | null
+    gradationTotal: number | null
     notes?: string | null
   }>
 }
 
 function toOrderInput(order: EditableOrder): OrderInput {
   return {
+    type: order.type,
     clientId: order.clientId,
     currency: order.currency,
     deadline: order.deadline ? order.deadline.split('T')[0] : '',
@@ -40,6 +47,10 @@ function toOrderInput(order: EditableOrder): OrderInput {
       sizeTU: item.sizeTU,
       quantity: item.quantity,
       unitPrice: Number(item.unitPrice),
+      patronage: item.patronage != null ? Number(item.patronage) : undefined,
+      prototype: item.prototype != null ? Number(item.prototype) : undefined,
+      gradationSizes: item.gradationSizes ?? undefined,
+      gradationUnitPrice: item.gradationUnitPrice != null ? Number(item.gradationUnitPrice) : undefined,
       notes: item.notes ?? undefined,
     })),
   }
