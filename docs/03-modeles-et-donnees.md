@@ -8,9 +8,12 @@
 - **Adaptateur runtime** : `PrismaPg` (driver `pg`) — `lib/prisma.ts:8`. Le
   client est un **singleton** mis en cache sur `globalThis` hors production
   (`lib/prisma.ts:12-14`).
-- **Migrations** : SQL versionné dans `prisma/migrations/` (3 migrations :
+- **Migrations** : SQL versionné dans `prisma/migrations/` (8 migrations :
   `20260510200352_init`, `20260531120000_exchange_rates_and_payment_conversion`,
-  `20260531153000_add_credit_notes`).
+  `20260531153000_add_credit_notes`, `20261011083929_add_order_type_and_study_fields`,
+  `20261011092307_add_order_item_kind_and_flat_price`,
+  `20261011103150_add_order_fabric_supply`, `20261011103920_add_order_item_new_sizes`,
+  `20261011120000_rename_prototype_to_proto`).
 - **Seeds** : `prisma/seed.ts` (admin Supabase + `User`), `prisma/import-data.ts`
   (import clients/fournisseurs/achats/factures depuis `prisma/seed-data.ts`).
 
@@ -84,19 +87,35 @@ Index : `company`, `lastName`. Relations : `measurements` (1-1),
 ### Commandes
 
 **`Order`** — `schema.prisma:79`
-`reference` (unique), `clientId`, `status` (`OrderStatus`, défaut `QUOTE`),
-`orderDate` (défaut now), `deadline?`, `totalHT`/`totalTTC`
-(`Decimal(12,2)`, défaut 0), `currency` (défaut `MAD`), `notes?`.
+`reference` (unique), `clientId`, `type` (`OrderType`, défaut `PRODUCT`),
+`status` (`OrderStatus`, défaut `QUOTE`), `orderDate` (défaut now), `deadline?`,
+`totalHT`/`totalTTC` (`Decimal(12,2)`, défaut 0), `currency` (défaut `MAD`),
+`fabricSupply` (`Boolean`, défaut false), `notes?`.
 Index : `clientId`, `status`. Relations : `items` (1-N, cascade),
 `production` (1-1), `invoice` (1-1), `payments` (1-N).
 
 **`OrderStatus`** (enum) : `QUOTE`, `CONFIRMED`, `SOURCING`, `STUDY`,
 `PRODUCTION`, `READY`, `DELIVERED`, `INVOICED`, `PAID`, `CANCELLED`.
 
-**`OrderItem`** — `schema.prisma:116`
-`orderId` (`onDelete: Cascade`), `designation`, tailles `sizeS/M/L/XL/TU`
-(`Int`, défaut 0), `quantity`, `unitPrice`/`totalPrice` (`Decimal(10,2)`),
-`notes?`. Index `orderId`. Relation : `creditNoteItems`.
+**`OrderType`** (enum) : `PRODUCT` (devis de production), `STUDY` (devis bureau
+d'études). Le type pilote la **référence** (`DEVIS-PROD-…` vs `DEVIS-BE-…`), les
+**champs de lignes** disponibles et l'**affichage du PDF**.
+
+**`OrderItem`** — `schema.prisma:128`
+`orderId` (`onDelete: Cascade`), `designation`, tailles
+`sizeXS/S/M/L/XL/XXL/XXXL/TU` (`Int`, défaut 0), `quantity`,
+`unitPrice`/`totalPrice` (`Decimal(10,2)`), `notes?`. Index `orderId`.
+Relation : `creditNoteItems`.
+
+Pour les lignes « bureau d'études » (`Order.type = STUDY`), champs optionnels
+supplémentaires : `patronage`/`proto` (`Decimal(10,2)?`),
+`gradationSizes` (`Int?`), `gradationUnitPrice`/`gradationTotal`
+(`Decimal(10,2)?`), `kind` (`OrderItemKind`, défaut `BREAKDOWN`), `flatPrice`
+(`Decimal(10,2)?`). Le champ `proto` correspond à la prestation « prototype »
+(renommé pour éviter le mot-clé réservé `prototype` de react-hook-form).
+
+**`OrderItemKind`** (enum) : `BREAKDOWN` (ligne détaillée : patronage + prototype
++ gradation), `FLAT` (ligne « tarif unique » : `totalPrice = flatPrice`).
 
 **`ProductionPlan`** — `schema.prisma:240`
 1-1 avec `Order` (`orderId` unique). Jalons booléens + dates : `sourcingDone`/
@@ -215,5 +234,8 @@ Index `(employeeId, date)`.
   générés à la demande.
 - ⚠ **À vérifier** — `Payment.orderId` et `SupplierPurchase.accountingExported`
   sont déclarés mais peu/pas renseignés par le code applicatif.
+- ⚠ **À vérifier** — `OrderItem` porte 8 tailles (`XS`→`TU`) mais
+  `CreditNoteItem` n'en porte que 5 (`S/M/L/XL/TU`). Un avoir sur une commande de
+  production utilisant `XS`/`XXL`/`XXXL` ne peut donc pas restituer ces tailles.
 - 💡 Les montants monétaires utilisent `Decimal` ; le code convertit
   systématiquement en `Number` avant calcul et arrondit à 2 décimales.

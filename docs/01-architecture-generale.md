@@ -7,8 +7,10 @@ activité de **manufacture / confection textile**. Il gère le cycle complet
 suivant, tel qu'implémenté dans le code :
 
 1. **Clients** — marques, B2B, particuliers, studios, avec mensurations.
-2. **Commandes / devis** — lignes d'articles par tailles (S/M/L/XL/TU), prix
-   unitaires, totaux HT/TTC, multi-devises (MAD, EUR, GBP, USD).
+2. **Commandes / devis** — deux types : **devis de production** (lignes
+   d'articles par tailles XS/S/M/L/XL/XXL/XXXL/TU, prix unitaires, option
+   « fourniture de tissu ») et **devis bureau d'études** (patronage, prototype,
+   gradation, ou tarif unique) ; totaux HT/TTC, multi-devises (MAD, EUR, GBP, USD).
 3. **Confirmation & production** — passage devis → commande confirmée, création
    d'un plan de production.
 4. **Facturation** — génération de factures numérotées, TVA, droit de timbre.

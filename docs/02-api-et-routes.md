@@ -90,14 +90,22 @@ Inclut `client` (id, company, firstName, lastName) et `items`. **Réponse `200`*
 
 ### `POST /api/orders` — `app/api/orders/route.ts:44`
 
-Crée un devis. **Body** : `orderSchema` → `clientId` (uuid), `currency`
-(`MAD`/`EUR`/`GBP`/`USD`, défaut `MAD`), `deadline?` (`YYYY-MM-DD`), `notes?`,
-`items` (≥ 1, `orderItemSchema`).
+Crée un devis. **Body** : `orderSchema` → `type` (`PRODUCT`/`STUDY`, défaut
+`PRODUCT`), `clientId` (uuid), `currency` (`MAD`/`EUR`/`GBP`/`USD`, défaut
+`MAD`), `fabricSupply` (bool, défaut false — devis de production uniquement),
+`deadline?` (`YYYY-MM-DD`), `notes?`, `items` (≥ 1, `orderItemSchema`).
 
-- Génère la référence `DEVIS-<année>-<séquence 3 chiffres>` en cherchant la
-  dernière référence de l'année (`formatOrderReference`).
-- Calcule `totalPrice` par ligne = `quantity * unitPrice` arrondi.
-- Calcule `totalHT`/`totalTTC` via `calculateOrderTotals` (TVA 20 % si MAD).
+`orderItemSchema` est un sur-ensemble : pour `PRODUCT` → tailles
+`sizeXS/S/M/L/XL/XXL/XXXL/TU` + `quantity` + `unitPrice` ; pour `STUDY` →
+`kind` (`BREAKDOWN`/`FLAT`) avec soit `patronage`/`proto`/`gradationSizes`/
+`gradationUnitPrice`, soit `flatPrice`.
+
+- Génère la référence selon le type : `DEVIS-PROD-<année>-<seq 3>` ou
+  `DEVIS-BE-<année>-<seq 3>` (`orderReferencePrefix` + `formatOrderReference`),
+  en cherchant la dernière référence de l'année **pour ce type**.
+- Calcule `totalPrice` par ligne : `quantity × unitPrice` (PRODUCT), `patronage
+  + proto + gradationTotal` (STUDY BREAKDOWN) ou `flatPrice` (STUDY FLAT).
+- Calcule `totalHT`/`totalTTC` via `calculateOrderTotalsFromPrices` (TVA 20 % si MAD).
 
 **Réponse `201`** : commande avec `items`.
 

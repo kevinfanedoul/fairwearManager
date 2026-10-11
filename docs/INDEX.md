@@ -57,6 +57,10 @@ change, fournisseurs & achats, todos, trésorerie (caisse).
 - **Todo (`TodoStatus`)** : `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 - **Rôle utilisateur (`UserRole`)** : `ADMIN`, `COMMERCIAL`, `PRODUCTION`,
   `COMPTABLE`, `RH`.
+- **Type de commande (`OrderType`)** : `PRODUCT` (devis de production),
+  `STUDY` (devis bureau d'études).
+- **Type de ligne (`OrderItemKind`)** : `BREAKDOWN` (patronage + prototype +
+  gradation), `FLAT` (tarif unique).
 
 ## Avertissements transverses
 

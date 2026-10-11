@@ -78,6 +78,22 @@ stateDiagram-v2
 > atteint** : seul un `PUT` explicite avec `status` les positionne (sans règle de
 > progression ni de production associée).
 
+### 2.1 Deux types de devis
+
+`Order.type` distingue deux natures de devis :
+
+- **`PRODUCT`** (devis de production) : lignes d'articles avec quantités par
+  taille (`XS`/`S`/`M`/`L`/`XL`/`XXL`/`XXXL`/`TU`) et prix unitaire. Option
+  `fabricSupply` (« avec fourniture de tissu »). Référence `DEVIS-PROD-…`.
+- **`STUDY`** (devis bureau d'études) : lignes de prestation, soit `BREAKDOWN`
+  (patronage + prototype + gradation), soit `FLAT` (tarif unique). Référence
+  `DEVIS-BE-…`.
+
+Le **PDF de devis** (`components/orders/OrderPDF.tsx`) adapte ses colonnes au
+type, n'affiche que les **colonnes de tailles non vides** (au moins une valeur)
+pour les devis de production, et reprend la mention de fourniture de tissu en
+entête de tableau.
+
 ## 3. Création d'une facture (numérotation & taxes)
 
 Le numéro suit le format `PR-<séquence sur 3 chiffres>/<année>`
@@ -299,5 +315,6 @@ Référence : `app/api/dashboard/kpis/route.ts:8-88`.
 | Droit de timbre | 0,25 % du TTC, max 10 000 | `calculateStampDuty` (`invoice.ts:15`) |
 | Numéro facture | `PR-000/AAAA` | `formatInvoiceNumber` |
 | Numéro avoir | `AV-000/AAAA` | `formatCreditNoteNumber` |
-| Référence commande | `DEVIS-AAAA-000` | `formatOrderReference` |
+| Référence commande (production) | `DEVIS-PROD-AAAA-000` | `formatOrderReference` |
+| Référence commande (bureau d'études) | `DEVIS-BE-AAAA-000` | `formatOrderReference` |
 | Arrondis | 2 décimales (montants), 6 (taux) | `exchange-rates.ts` |

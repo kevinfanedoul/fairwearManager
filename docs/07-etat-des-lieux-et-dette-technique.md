@@ -44,6 +44,9 @@ Modèles Prisma sans route API ni page :
 - **`Invoice.pdfUrl` jamais renseigné** : le PDF est généré à la volée, non
   stocké (`schema.prisma:151`).
 - **`SupplierPurchase.accountingExported`** déclaré, non piloté par l'API.
+- **Tailles `CreditNoteItem` incomplètes** : `OrderItem` gère 8 tailles
+  (`XS`→`TU`) mais `CreditNoteItem` n'en a que 5 (`S`→`TU`). Un avoir sur une
+  commande utilisant `XS`/`XXL`/`XXXL` ne peut donc pas restituer ces tailles.
 
 ## 3. Sécurité et accès
 
@@ -94,8 +97,8 @@ Modèles Prisma sans route API ni page :
   `appliedAmount` ; le `Payment.currency` reste toujours `'MAD'`.
 - **TVA** : uniquement 20 % pour MAD, 0 % pour les devises étrangères
   (`lib/calculations/invoice.ts:3`).
-- **Numérotation** : `DEVIS-AAAA-000`, `PR-000/AAAA`, `AV-000/AAAA`, séquence
-  par année.
+- **Numérotation** : `DEVIS-PROD-AAAA-000` (production) / `DEVIS-BE-AAAA-000`
+  (bureau d'études), `PR-000/AAAA`, `AV-000/AAAA`, séquence par année.
 
 ## 8. Suggestion de priorisation (proposition)
 
