@@ -61,6 +61,18 @@ const styles = StyleSheet.create({
     borderColor: line,
     marginBottom: 10,
   },
+  tableTypeBand: {
+    backgroundColor: accent,
+    paddingVertical: 5,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: line,
+  },
+  tableTypeText: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center',
+  },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -277,6 +289,11 @@ export function OrderPDF({ order }: OrderPDFProps) {
         </Text>
 
         <View style={styles.table}>
+          <View style={styles.tableTypeBand}>
+            <Text style={styles.tableTypeText}>
+              {order.type === 'STUDY' ? "Devis bureau d'étude" : 'Devis production'}
+            </Text>
+          </View>
           {order.type === 'STUDY' ? (
             <>
               <View style={styles.tableHeader}>
