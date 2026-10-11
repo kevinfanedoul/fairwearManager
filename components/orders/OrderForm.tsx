@@ -36,7 +36,7 @@ const emptyProductItem = {
 const emptyStudyItem = {
   designation: '',
   patronage: 0,
-  prototype: 0,
+  proto: 0,
   gradationSizes: 0,
   gradationUnitPrice: 0,
 }

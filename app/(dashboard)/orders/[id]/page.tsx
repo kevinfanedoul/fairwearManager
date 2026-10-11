@@ -25,7 +25,7 @@ type OrderItemView = {
   unitPrice: number
   totalPrice: number
   patronage: number | null
-  prototype: number | null
+  proto: number | null
   gradationSizes: number | null
   gradationUnitPrice: number | null
   gradationTotal: number | null
@@ -357,7 +357,7 @@ export default function OrderDetailPage() {
                   <tr key={item.id} className="border-b last:border-0">
                     <td className="py-2">{item.designation}</td>
                     <td className="text-right"><CurrencyDisplay amount={item.patronage ?? 0} currency={order.currency} /></td>
-                    <td className="text-right"><CurrencyDisplay amount={item.prototype ?? 0} currency={order.currency} /></td>
+                    <td className="text-right"><CurrencyDisplay amount={item.proto ?? 0} currency={order.currency} /></td>
                     <td className="text-right">{item.gradationSizes ?? 0} × <CurrencyDisplay amount={item.gradationUnitPrice ?? 0} currency={order.currency} /></td>
                     <td className="text-right"><CurrencyDisplay amount={item.gradationTotal ?? 0} currency={order.currency} /></td>
                     <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>

@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ? {
             type: invoice.order.type,
             currency: invoice.order.currency as 'MAD' | 'EUR' | 'GBP' | 'USD',
-            items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown; patronage: unknown; prototype: unknown; gradationSizes: unknown; gradationUnitPrice: unknown; gradationTotal: unknown }) => ({
+            items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown; patronage: unknown; proto: unknown; gradationSizes: unknown; gradationUnitPrice: unknown; gradationTotal: unknown }) => ({
               designation: item.designation,
               sizeS: item.sizeS,
               sizeM: item.sizeM,
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               unitPrice: Number(item.unitPrice),
               totalPrice: Number(item.totalPrice),
               patronage: item.patronage ? Number(item.patronage) : null,
-              prototype: item.prototype ? Number(item.prototype) : null,
+              proto: item.proto ? Number(item.proto) : null,
               gradationSizes: item.gradationSizes ? Number(item.gradationSizes) : null,
               gradationUnitPrice: item.gradationUnitPrice ? Number(item.gradationUnitPrice) : null,
               gradationTotal: item.gradationTotal ? Number(item.gradationTotal) : null,

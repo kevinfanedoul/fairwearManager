@@ -13,7 +13,7 @@ import { getVATRateForCurrency } from '@/lib/calculations/invoice'
 const emptyStudyItem = {
   designation: '',
   patronage: 0,
-  prototype: 0,
+  proto: 0,
   gradationSizes: 0,
   gradationUnitPrice: 0,
 }
@@ -64,7 +64,7 @@ export function StudyOrderItemsTable() {
   function lineTotal(index: number) {
     const item = items[index]
     if (!item) return 0
-    return Math.round(((item.patronage ?? 0) + (item.prototype ?? 0) + gradationTotal(index)) * 100) / 100
+    return Math.round(((item.patronage ?? 0) + (item.proto ?? 0) + gradationTotal(index)) * 100) / 100
   }
 
   const totalHT = items.reduce((sum, _item, i) => sum + lineTotal(i), 0)
@@ -103,7 +103,7 @@ export function StudyOrderItemsTable() {
                   )} />
                 </td>
                 <td className="py-2 px-2">
-                  <FormField control={control} name={`items.${index}.prototype`} render={({ field }) => (
+                  <FormField control={control} name={`items.${index}.proto`} render={({ field }) => (
                     <FormItem><FormControl>
                       <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
                     </FormControl><FormMessage /></FormItem>

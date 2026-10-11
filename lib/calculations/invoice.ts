@@ -37,12 +37,12 @@ export function calculateStudyGradationTotal(
 }
 
 export function calculateStudyLineTotal(
-  item: { patronage?: number | null; prototype?: number | null; gradationTotal?: number | null }
+  item: { patronage?: number | null; proto?: number | null; gradationTotal?: number | null }
 ): number {
   const patronage = item.patronage ?? 0
-  const prototype = item.prototype ?? 0
+  const proto = item.proto ?? 0
   const gradationTotal = item.gradationTotal ?? 0
-  return Math.round((patronage + prototype + gradationTotal) * 100) / 100
+  return Math.round((patronage + proto + gradationTotal) * 100) / 100
 }
 
 export function calculateOrderTotalsFromPrices(

@@ -10,7 +10,7 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().min(0).default(0),
   unitPrice: z.number().min(0).default(0),
   patronage: z.number().min(0).optional(),
-  prototype: z.number().min(0).optional(),
+  proto: z.number().min(0).optional(),
   gradationSizes: z.number().int().min(0).optional(),
   gradationUnitPrice: z.number().min(0).optional(),
   notes: z.string().optional(),

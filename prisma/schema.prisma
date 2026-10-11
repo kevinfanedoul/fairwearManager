@@ -133,7 +133,7 @@ model OrderItem {
   unitPrice         Decimal @db.Decimal(10, 2)
   totalPrice        Decimal @db.Decimal(10, 2)
   patronage         Decimal? @db.Decimal(10, 2)
-  prototype         Decimal? @db.Decimal(10, 2)
+  proto             Decimal? @db.Decimal(10, 2)
   gradationSizes    Int?
   gradationUnitPrice Decimal? @db.Decimal(10, 2)
   gradationTotal    Decimal? @db.Decimal(10, 2)

@@ -23,7 +23,7 @@ type EditableOrder = {
     quantity: number
     unitPrice: number
     patronage: number | null
-    prototype: number | null
+    proto: number | null
     gradationSizes: number | null
     gradationUnitPrice: number | null
     gradationTotal: number | null
@@ -48,7 +48,7 @@ function toOrderInput(order: EditableOrder): OrderInput {
       quantity: item.quantity,
       unitPrice: Number(item.unitPrice),
       patronage: item.patronage != null ? Number(item.patronage) : undefined,
-      prototype: item.prototype != null ? Number(item.prototype) : undefined,
+      proto: item.proto != null ? Number(item.proto) : undefined,
       gradationSizes: item.gradationSizes ?? undefined,
       gradationUnitPrice: item.gradationUnitPrice != null ? Number(item.gradationUnitPrice) : undefined,
       notes: item.notes ?? undefined,

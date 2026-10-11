@@ -213,7 +213,7 @@ type OrderPDFItem = {
   unitPrice: number
   totalPrice: number
   patronage: number | null
-  prototype: number | null
+  proto: number | null
   gradationSizes: number | null
   gradationUnitPrice: number | null
   gradationTotal: number | null
@@ -324,7 +324,7 @@ export function OrderPDF({ order }: OrderPDFProps) {
                     <Text style={styles.textRight}>{formatCurrency(item.patronage ?? 0, order.currency)}</Text>
                   </View>
                   <View style={[styles.cellBase, { width: '14%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.prototype ?? 0, order.currency)}</Text>
+                    <Text style={styles.textRight}>{formatCurrency(item.proto ?? 0, order.currency)}</Text>
                   </View>
                   <View style={[styles.cellBase, { width: '16%' }]}>
                     <Text style={styles.textCenter}>{item.gradationSizes ?? 0} × {formatCurrency(item.gradationUnitPrice ?? 0, order.currency)}</Text>

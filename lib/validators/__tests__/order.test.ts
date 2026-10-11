@@ -48,7 +48,7 @@ describe('orderSchema', () => {
         {
           designation: 'Gradation modèle X',
           patronage: 200,
-          prototype: 150,
+          proto: 150,
           gradationSizes: 4,
           gradationUnitPrice: 35,
         },
