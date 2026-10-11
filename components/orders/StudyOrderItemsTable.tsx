@@ -108,13 +108,18 @@ export function StudyOrderItemsTable() {
                     )} />
                   </td>
                   {isFlat ? (
-                    <td className="py-2 px-2" colSpan={5}>
-                      <FormField control={control} name={`items.${index}.flatPrice`} render={({ field }) => (
-                        <FormItem><FormControl>
-                          <NumericInput value={field.value} onChange={field.onChange} className="w-40 text-right" placeholder="Tarif unique" />
-                        </FormControl><FormMessage /></FormItem>
-                      )} />
-                    </td>
+                    <>
+                      <td className="py-2 px-2" colSpan={4}>
+                        <FormField control={control} name={`items.${index}.flatPrice`} render={({ field }) => (
+                          <FormItem><FormControl>
+                            <NumericInput value={field.value} onChange={field.onChange} className="w-40 text-right" placeholder="Tarif unique" />
+                          </FormControl><FormMessage /></FormItem>
+                        )} />
+                      </td>
+                      <td className="py-2 px-2 text-right font-medium">
+                        <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
+                      </td>
+                    </>
                   ) : (
                     <>
                       <td className="py-2 px-2">
