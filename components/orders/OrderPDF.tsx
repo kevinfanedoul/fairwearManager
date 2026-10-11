@@ -483,11 +483,11 @@ export function OrderPDF({ order }: OrderPDFProps) {
             <View style={styles.sectionBand}>
               <Text style={styles.sectionBandText}>Conditions et règlement :</Text>
             </View>
-            <Text style={styles.bodyLine}>Devis établi par FAIRWEAR MANUFACTURE.</Text>
-            <Text style={styles.bodyLine}>Validation par retour signé ou confirmation écrite.</Text>
-            <Text style={styles.bodyLine}>Règlement selon conditions convenues entre les parties.</Text>
-            <Text style={styles.bodyLine}>Production lancée après validation définitive du devis.</Text>
-            <Text style={styles.bodyLine}>Les prix sont exprimés en {order.currency}.</Text>
+            <Text style={styles.bodyLine}>Par virement bancaire à : FAIRWEAR MANUFACTURE</Text>
+            <Text style={styles.bodyLine}>Domiciliation : BANK OF AFRICA - 16 Rue Farhat Hachad</Text>
+            <Text style={styles.bodyLine}>Agence : Cité Dakhla - AGADIR</Text>
+            <Text style={styles.bodyLine}>Compte IBAN : MA64 0110 1000 0015 2100 0045 9751</Text>
+            <Text style={styles.bodyLine}>BIC : BMCEMAMC</Text>
           </View>
 
           <View style={styles.lowerColRight}>
