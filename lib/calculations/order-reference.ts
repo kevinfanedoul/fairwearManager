@@ -1,7 +1,7 @@
 import type { OrderType } from '@prisma/client'
 
 export function orderReferencePrefix(type: OrderType): string {
-  return type === 'STUDY' ? 'DEVIS-BE' : 'DEVIS'
+  return type === 'STUDY' ? 'DEVIS-BE' : 'DEVIS-PROD'
 }
 
 export function formatOrderReference(type: OrderType, year: number, sequence: number): string {
@@ -9,6 +9,6 @@ export function formatOrderReference(type: OrderType, year: number, sequence: nu
 }
 
 export function parseOrderYear(reference: string): number {
-  const match = reference.match(/DEVIS-(?:BE-)?(\d{4})-/)
+  const match = reference.match(/DEVIS-(?:BE-|PROD-)?(\d{4})-/)
   return match ? parseInt(match[1]) : new Date().getFullYear()
 }
