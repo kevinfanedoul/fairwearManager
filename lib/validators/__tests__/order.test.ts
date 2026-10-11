@@ -58,6 +58,22 @@ describe('orderSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts a STUDY order with a flat (tarif unique) line', () => {
+    const result = orderSchema.safeParse({
+      type: 'STUDY',
+      clientId: '550e8400-e29b-41d4-a716-446655440000',
+      items: [
+        {
+          kind: 'FLAT',
+          designation: 'Forfait prototypage',
+          flatPrice: 500,
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+  })
+
   it('rejects a PRODUCT order with a zero unit price', () => {
     const result = orderSchema.safeParse({
       type: 'PRODUCT',

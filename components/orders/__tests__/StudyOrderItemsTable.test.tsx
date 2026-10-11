@@ -5,14 +5,14 @@ import { StudyOrderItemsTable } from '../StudyOrderItemsTable'
 
 type FormValues = {
   currency: string
-  items: { designation: string; patronage?: number; proto?: number; gradationSizes?: number; gradationUnitPrice?: number }[]
+  items: { kind?: 'BREAKDOWN' | 'FLAT'; designation: string; patronage?: number; proto?: number; gradationSizes?: number; gradationUnitPrice?: number; flatPrice?: number }[]
 }
 
 function Harness({ capture }: { capture: (m: UseFormReturn<FormValues>) => void }) {
   const methods = useForm<FormValues>({
     defaultValues: {
       currency: 'MAD',
-      items: [{ designation: '', patronage: 0, proto: 0, gradationSizes: 0, gradationUnitPrice: 0 }],
+      items: [{ kind: 'BREAKDOWN', designation: '', patronage: 0, proto: 0, gradationSizes: 0, gradationUnitPrice: 0 }],
     },
   })
   capture(methods)
@@ -36,5 +36,19 @@ describe('StudyOrderItemsTable', () => {
 
     expect(methods!.getValues('items.0.patronage')).toBe(200)
     expect(methods!.getValues('items.0.proto')).toBe(150)
+  })
+
+  it('updates flatPrice value in form state for a flat line', () => {
+    let methods: UseFormReturn<FormValues> | undefined
+    render(<Harness capture={(m) => { methods = m }} />)
+
+    const flatButton = screen.getByText('Ajouter une ligne tarif unique')
+    fireEvent.click(flatButton)
+
+    const flatPriceInput = screen.getByPlaceholderText('Tarif unique')
+    fireEvent.change(flatPriceInput, { target: { value: '300' } })
+
+    expect(methods!.getValues('items.1.kind')).toBe('FLAT')
+    expect(methods!.getValues('items.1.flatPrice')).toBe(300)
   })
 })

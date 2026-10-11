@@ -217,6 +217,8 @@ type OrderPDFItem = {
   gradationSizes: number | null
   gradationUnitPrice: number | null
   gradationTotal: number | null
+  kind: 'BREAKDOWN' | 'FLAT'
+  flatPrice: number | null
 }
 
 type OrderPDFProps = {
@@ -320,21 +322,34 @@ export function OrderPDF({ order }: OrderPDFProps) {
                   <View style={[styles.cellBase, { width: '30%' }]}>
                     <Text style={styles.textLeft}>{item.designation}</Text>
                   </View>
-                  <View style={[styles.cellBase, { width: '14%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.patronage ?? 0, order.currency)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '14%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.proto ?? 0, order.currency)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '16%' }]}>
-                    <Text style={styles.textCenter}>{item.gradationSizes ?? 0} × {formatCurrency(item.gradationUnitPrice ?? 0, order.currency)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '14%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.gradationTotal ?? 0, order.currency)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.totalPrice, order.currency)}</Text>
-                  </View>
+                  {item.kind === 'FLAT' ? (
+                    <>
+                      <View style={[styles.cellBase, { width: '58%' }]}>
+                        <Text style={styles.textRight}>Tarif unique</Text>
+                      </View>
+                      <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.flatPrice ?? 0, order.currency)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={[styles.cellBase, { width: '14%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.patronage ?? 0, order.currency)}</Text>
+                      </View>
+                      <View style={[styles.cellBase, { width: '14%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.proto ?? 0, order.currency)}</Text>
+                      </View>
+                      <View style={[styles.cellBase, { width: '16%' }]}>
+                        <Text style={styles.textCenter}>{item.gradationSizes ?? 0} × {formatCurrency(item.gradationUnitPrice ?? 0, order.currency)}</Text>
+                      </View>
+                      <View style={[styles.cellBase, { width: '14%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.gradationTotal ?? 0, order.currency)}</Text>
+                      </View>
+                      <View style={[styles.cellBase, styles.cellLast, { width: '12%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.totalPrice, order.currency)}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               ))}
 

@@ -29,6 +29,8 @@ type OrderItemView = {
   gradationSizes: number | null
   gradationUnitPrice: number | null
   gradationTotal: number | null
+  kind: 'BREAKDOWN' | 'FLAT'
+  flatPrice: number | null
 }
 
 type OrderView = {
@@ -354,14 +356,22 @@ export default function OrderDetailPage() {
               <thead><tr className="border-b text-slate-500"><th className="text-left pb-2">Désignation</th><th className="text-right pb-2">Patronage</th><th className="text-right pb-2">Prototype</th><th className="text-right pb-2">Gradation</th><th className="text-right pb-2">Total gradations</th><th className="text-right pb-2">Total</th></tr></thead>
               <tbody>
                 {order.items?.map((item: OrderItemView) => (
-                  <tr key={item.id} className="border-b last:border-0">
-                    <td className="py-2">{item.designation}</td>
-                    <td className="text-right"><CurrencyDisplay amount={item.patronage ?? 0} currency={order.currency} /></td>
-                    <td className="text-right"><CurrencyDisplay amount={item.proto ?? 0} currency={order.currency} /></td>
-                    <td className="text-right">{item.gradationSizes ?? 0} × <CurrencyDisplay amount={item.gradationUnitPrice ?? 0} currency={order.currency} /></td>
-                    <td className="text-right"><CurrencyDisplay amount={item.gradationTotal ?? 0} currency={order.currency} /></td>
-                    <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
-                  </tr>
+                  item.kind === 'FLAT' ? (
+                    <tr key={item.id} className="border-b last:border-0">
+                      <td className="py-2">{item.designation}</td>
+                      <td className="py-2 text-right text-slate-500" colSpan={4}>Tarif unique</td>
+                      <td className="py-2 text-right"><CurrencyDisplay amount={item.flatPrice ?? 0} currency={order.currency} /></td>
+                    </tr>
+                  ) : (
+                    <tr key={item.id} className="border-b last:border-0">
+                      <td className="py-2">{item.designation}</td>
+                      <td className="text-right"><CurrencyDisplay amount={item.patronage ?? 0} currency={order.currency} /></td>
+                      <td className="text-right"><CurrencyDisplay amount={item.proto ?? 0} currency={order.currency} /></td>
+                      <td className="text-right">{item.gradationSizes ?? 0} × <CurrencyDisplay amount={item.gradationUnitPrice ?? 0} currency={order.currency} /></td>
+                      <td className="text-right"><CurrencyDisplay amount={item.gradationTotal ?? 0} currency={order.currency} /></td>
+                      <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>

@@ -10,12 +10,19 @@ import { Trash2, Plus } from 'lucide-react'
 import type { OrderInput } from '@/lib/validators/order'
 import { getVATRateForCurrency } from '@/lib/calculations/invoice'
 
-const emptyStudyItem = {
+const emptyBreakdownItem = {
+  kind: 'BREAKDOWN' as const,
   designation: '',
   patronage: 0,
   proto: 0,
   gradationSizes: 0,
   gradationUnitPrice: 0,
+}
+
+const emptyFlatItem = {
+  kind: 'FLAT' as const,
+  designation: '',
+  flatPrice: 0,
 }
 
 type NumericInputProps = Omit<React.ComponentProps<'input'>, 'value' | 'onChange' | 'type'> & {
@@ -64,6 +71,7 @@ export function StudyOrderItemsTable() {
   function lineTotal(index: number) {
     const item = items[index]
     if (!item) return 0
+    if (item.kind === 'FLAT') return item.flatPrice ?? 0
     return Math.round(((item.patronage ?? 0) + (item.proto ?? 0) + gradationTotal(index)) * 100) / 100
   }
 
@@ -88,67 +96,94 @@ export function StudyOrderItemsTable() {
             </tr>
           </thead>
           <tbody>
-            {fields.map((field, index) => (
-              <tr key={field.id} className="border-b">
-                <td className="py-2 pr-2">
-                  <FormField control={control} name={`items.${index}.designation`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} placeholder="Gradation modèle X" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                </td>
-                <td className="py-2 px-2">
-                  <FormField control={control} name={`items.${index}.patronage`} render={({ field }) => (
-                    <FormItem><FormControl>
-                      <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
-                    </FormControl><FormMessage /></FormItem>
-                  )} />
-                </td>
-                <td className="py-2 px-2">
-                  <FormField control={control} name={`items.${index}.proto`} render={({ field }) => (
-                    <FormItem><FormControl>
-                      <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
-                    </FormControl><FormMessage /></FormItem>
-                  )} />
-                </td>
-                <td className="py-2 px-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <FormField control={control} name={`items.${index}.gradationSizes`} render={({ field }) => (
-                      <FormItem><FormControl>
-                        <NumericInput integer value={field.value} onChange={field.onChange} className="w-14 text-center" placeholder="nb" />
-                      </FormControl><FormMessage /></FormItem>
+            {fields.map((field, index) => {
+              const item = items[index]
+              const isFlat = item?.kind === 'FLAT'
+
+              return (
+                <tr key={field.id} className="border-b">
+                  <td className="py-2 pr-2">
+                    <FormField control={control} name={`items.${index}.designation`} render={({ field }) => (
+                      <FormItem><FormControl><Input {...field} placeholder="Gradation modèle X" /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <span className="text-slate-400">×</span>
-                    <FormField control={control} name={`items.${index}.gradationUnitPrice`} render={({ field }) => (
-                      <FormItem><FormControl>
-                        <NumericInput value={field.value} onChange={field.onChange} className="w-20 text-right" placeholder="prix" />
-                      </FormControl><FormMessage /></FormItem>
-                    )} />
-                  </div>
-                </td>
-                <td className="py-2 px-2 text-right font-medium">
-                  <CurrencyDisplay amount={gradationTotal(index)} currency={currency} />
-                </td>
-                <td className="py-2 px-2 text-right font-medium">
-                  <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
-                </td>
-                <td className="py-2 pl-2">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                    <Trash2 size={14} />
-                  </Button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  {isFlat ? (
+                    <td className="py-2 px-2" colSpan={5}>
+                      <FormField control={control} name={`items.${index}.flatPrice`} render={({ field }) => (
+                        <FormItem><FormControl>
+                          <NumericInput value={field.value} onChange={field.onChange} className="w-40 text-right" placeholder="Tarif unique" />
+                        </FormControl><FormMessage /></FormItem>
+                      )} />
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-2 px-2">
+                        <FormField control={control} name={`items.${index}.patronage`} render={({ field }) => (
+                          <FormItem><FormControl>
+                            <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
+                          </FormControl><FormMessage /></FormItem>
+                        )} />
+                      </td>
+                      <td className="py-2 px-2">
+                        <FormField control={control} name={`items.${index}.proto`} render={({ field }) => (
+                          <FormItem><FormControl>
+                            <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
+                          </FormControl><FormMessage /></FormItem>
+                        )} />
+                      </td>
+                      <td className="py-2 px-2">
+                        <div className="flex items-center justify-center gap-1">
+                          <FormField control={control} name={`items.${index}.gradationSizes`} render={({ field }) => (
+                            <FormItem><FormControl>
+                              <NumericInput integer value={field.value} onChange={field.onChange} className="w-14 text-center" placeholder="nb" />
+                            </FormControl><FormMessage /></FormItem>
+                          )} />
+                          <span className="text-slate-400">×</span>
+                          <FormField control={control} name={`items.${index}.gradationUnitPrice`} render={({ field }) => (
+                            <FormItem><FormControl>
+                              <NumericInput value={field.value} onChange={field.onChange} className="w-20 text-right" placeholder="prix" />
+                            </FormControl><FormMessage /></FormItem>
+                          )} />
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 text-right font-medium">
+                        <CurrencyDisplay amount={gradationTotal(index)} currency={currency} />
+                      </td>
+                      <td className="py-2 px-2 text-right font-medium">
+                        <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
+                      </td>
+                    </>
+                  )}
+                  <td className="py-2 pl-2">
+                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                      <Trash2 size={14} />
+                    </Button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => append(emptyStudyItem)}
-      >
-        <Plus size={14} className="mr-2" />Ajouter une ligne
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => append(emptyBreakdownItem)}
+        >
+          <Plus size={14} className="mr-2" />Ajouter une ligne bureau étude
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => append(emptyFlatItem)}
+        >
+          <Plus size={14} className="mr-2" />Ajouter une ligne tarif unique
+        </Button>
+      </div>
 
       <div className="flex justify-end">
         <div className="text-sm space-y-1 min-w-48">

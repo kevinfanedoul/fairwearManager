@@ -27,6 +27,8 @@ type EditableOrder = {
     gradationSizes: number | null
     gradationUnitPrice: number | null
     gradationTotal: number | null
+    kind: 'BREAKDOWN' | 'FLAT'
+    flatPrice: number | null
     notes?: string | null
   }>
 }
@@ -51,6 +53,8 @@ function toOrderInput(order: EditableOrder): OrderInput {
       proto: item.proto != null ? Number(item.proto) : undefined,
       gradationSizes: item.gradationSizes ?? undefined,
       gradationUnitPrice: item.gradationUnitPrice != null ? Number(item.gradationUnitPrice) : undefined,
+      kind: item.kind ?? 'BREAKDOWN',
+      flatPrice: item.flatPrice != null ? Number(item.flatPrice) : undefined,
       notes: item.notes ?? undefined,
     })),
   }

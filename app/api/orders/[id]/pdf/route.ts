@@ -57,6 +57,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           gradationSizes: item.gradationSizes,
           gradationUnitPrice: item.gradationUnitPrice ? Number(item.gradationUnitPrice) : null,
           gradationTotal: item.gradationTotal ? Number(item.gradationTotal) : null,
+          kind: item.kind,
+          flatPrice: item.flatPrice ? Number(item.flatPrice) : null,
         })),
       },
     })

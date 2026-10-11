@@ -119,6 +119,11 @@ enum OrderType {
   STUDY
 }
 
+enum OrderItemKind {
+  BREAKDOWN
+  FLAT
+}
+
 model OrderItem {
   id          String  @id @default(uuid())
   orderId     String
@@ -137,6 +142,8 @@ model OrderItem {
   gradationSizes    Int?
   gradationUnitPrice Decimal? @db.Decimal(10, 2)
   gradationTotal    Decimal? @db.Decimal(10, 2)
+  kind              OrderItemKind @default(BREAKDOWN)
+  flatPrice         Decimal? @db.Decimal(10, 2)
   notes             String?
 
   creditNoteItems CreditNoteItem[]

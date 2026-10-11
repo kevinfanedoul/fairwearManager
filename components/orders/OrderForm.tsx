@@ -34,6 +34,7 @@ const emptyProductItem = {
 }
 
 const emptyStudyItem = {
+  kind: 'BREAKDOWN' as const,
   designation: '',
   patronage: 0,
   proto: 0,

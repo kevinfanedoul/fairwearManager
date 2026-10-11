@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
 
   const itemsWithTotals = items.map((item) => {
     if (type === 'STUDY') {
+      if (item.kind === 'FLAT') {
+        return { ...item, totalPrice: item.flatPrice ?? 0 }
+      }
+
       const gradationTotal = calculateStudyGradationTotal(item)
       const totalPrice = calculateStudyLineTotal({ ...item, gradationTotal })
       return { ...item, gradationTotal, totalPrice }

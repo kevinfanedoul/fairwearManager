@@ -13,6 +13,8 @@ export const orderItemSchema = z.object({
   proto: z.number().min(0).optional(),
   gradationSizes: z.number().int().min(0).optional(),
   gradationUnitPrice: z.number().min(0).optional(),
+  kind: z.enum(['BREAKDOWN', 'FLAT']).default('BREAKDOWN'),
+  flatPrice: z.number().min(0).optional(),
   notes: z.string().optional(),
 })
 

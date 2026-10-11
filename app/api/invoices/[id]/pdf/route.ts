@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ? {
             type: invoice.order.type,
             currency: invoice.order.currency as 'MAD' | 'EUR' | 'GBP' | 'USD',
-            items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown; patronage: unknown; proto: unknown; gradationSizes: unknown; gradationUnitPrice: unknown; gradationTotal: unknown }) => ({
+            items: invoice.order.items.map((item: { designation: string; sizeS: number; sizeM: number; sizeL: number; sizeXL: number; sizeTU: number; quantity: number; unitPrice: unknown; totalPrice: unknown; patronage: unknown; proto: unknown; gradationSizes: unknown; gradationUnitPrice: unknown; gradationTotal: unknown; kind: 'BREAKDOWN' | 'FLAT'; flatPrice: unknown }) => ({
               designation: item.designation,
               sizeS: item.sizeS,
               sizeM: item.sizeM,
@@ -61,6 +61,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               gradationSizes: item.gradationSizes ? Number(item.gradationSizes) : null,
               gradationUnitPrice: item.gradationUnitPrice ? Number(item.gradationUnitPrice) : null,
               gradationTotal: item.gradationTotal ? Number(item.gradationTotal) : null,
+              kind: item.kind,
+              flatPrice: item.flatPrice ? Number(item.flatPrice) : null,
             })),
           }
         : null,
