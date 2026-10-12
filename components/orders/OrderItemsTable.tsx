@@ -24,6 +24,8 @@ const emptyProductItem = {
   unitPrice: 0,
 }
 
+const fieldLabel = 'mb-1 block text-xs font-medium text-slate-500'
+
 export function OrderItemsTable() {
   const { control, watch, setValue } = useFormContext<OrderInput>()
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
@@ -51,32 +53,34 @@ export function OrderItemsTable() {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-slate-500 text-left">
-              <th className="pb-2 pr-2">Désignation</th>
-              {SIZE_COLUMNS.map((col) => (
-                <th key={col.key} className="pb-2 px-2 text-center">{col.label}</th>
-              ))}
-              <th className="pb-2 px-2 text-center">Qté</th>
-              <th className="pb-2 px-2 text-right">Prix unit.</th>
-              <th className="pb-2 px-2 text-right">Total</th>
-              <th className="pb-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map((field, index) => (
-              <tr key={field.id} className="border-b">
-                <td className="py-2 pr-2">
-                  <FormField control={control} name={`items.${index}.designation`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} placeholder="T-shirt blanc" /></FormControl><FormMessage /></FormItem>
-                  )} />
-                </td>
-                {SIZE_COLUMNS.map((col) => (
-                  <td key={col.key} className="py-2 px-2">
-                    <FormField control={control} name={`items.${index}.${col.key}`} render={({ field }) => (
-                      <FormItem><FormControl><Input {...field} type="number" min="0" className="w-12 text-center" onChange={e => {
+      {fields.length === 0 && (
+        <p className="py-4 text-center text-sm text-slate-400">Aucune ligne</p>
+      )}
+
+      {fields.map((field, index) => (
+        <div key={field.id} className="space-y-3 rounded-xl border border-slate-200 p-3 sm:p-4">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <FormField control={control} name={`items.${index}.designation`} render={({ field }) => (
+                <FormItem>
+                  <FormControl><Input {...field} placeholder="Désignation (ex. T-shirt blanc)" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+            <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => remove(index)}>
+              <Trash2 size={16} />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {SIZE_COLUMNS.map((col) => (
+              <div key={col.key}>
+                <label className={`${fieldLabel} text-center`}>{col.label}</label>
+                <FormField control={control} name={`items.${index}.${col.key}`} render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} type="number" min="0" inputMode="numeric" className="w-full text-center" onChange={e => {
                         const nextValue = parseInt(e.target.value) || 0
                         field.onChange(nextValue)
 
@@ -86,33 +90,41 @@ export function OrderItemsTable() {
                         }, 0)
 
                         setValue(`items.${index}.quantity`, nextQuantity, { shouldDirty: true, shouldValidate: true })
-                      }} /></FormControl></FormItem>
-                    )} />
-                  </td>
-                ))}
-                <td className="py-2 px-2">
-                  <FormField control={control} name={`items.${index}.quantity`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} value={quantityFromSizes(index)} type="number" min="0" readOnly className="w-16 text-center bg-slate-50 text-slate-600" /></FormControl></FormItem>
-                  )} />
-                </td>
-                <td className="py-2 px-2">
-                  <FormField control={control} name={`items.${index}.unitPrice`} render={({ field }) => (
-                    <FormItem><FormControl><Input {...field} type="number" min="0" step="0.01" className="w-24 text-right" onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl></FormItem>
-                  )} />
-                </td>
-                <td className="py-2 px-2 text-right font-medium">
-                  <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
-                </td>
-                <td className="py-2 pl-2">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                    <Trash2 size={14} />
-                  </Button>
-                </td>
-              </tr>
+                      }} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          <div className="grid grid-cols-3 items-end gap-2">
+            <div>
+              <label className={fieldLabel}>Qté</label>
+              <FormField control={control} name={`items.${index}.quantity`} render={({ field }) => (
+                <FormItem>
+                  <FormControl><Input {...field} value={quantityFromSizes(index)} readOnly className="w-full bg-slate-50 text-center text-slate-600" /></FormControl>
+                </FormItem>
+              )} />
+            </div>
+            <div>
+              <label className={fieldLabel}>Prix unit.</label>
+              <FormField control={control} name={`items.${index}.unitPrice`} render={({ field }) => (
+                <FormItem>
+                  <FormControl><Input {...field} type="number" min="0" step="0.01" inputMode="decimal" className="w-full text-right" onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl>
+                </FormItem>
+              )} />
+            </div>
+            <div>
+              <label className={fieldLabel}>Total</label>
+              <div className="flex h-8 items-center justify-end rounded-lg border border-transparent px-2.5 text-sm font-medium">
+                <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
 
       <Button
         type="button"
@@ -124,7 +136,7 @@ export function OrderItemsTable() {
       </Button>
 
       <div className="flex justify-end">
-        <div className="text-sm space-y-1 min-w-48">
+        <div className="w-full space-y-1 text-sm sm:w-auto sm:min-w-48">
           <div className="flex justify-between text-slate-600"><span>Total HT</span><CurrencyDisplay amount={totalHT} currency={currency} /></div>
           <div className="flex justify-between text-slate-600"><span>TVA {Math.round(vatRate * 100)}%</span><CurrencyDisplay amount={tva} currency={currency} /></div>
           <div className="flex justify-between font-bold text-slate-900 border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={ttc} currency={currency} /></div>

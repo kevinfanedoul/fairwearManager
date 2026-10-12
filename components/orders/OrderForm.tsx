@@ -246,7 +246,7 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
             <p className="text-sm text-red-600">{form.formState.errors.root.message}</p>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting
                 ? mode === 'edit' ? 'Enregistrement…' : 'Création…'

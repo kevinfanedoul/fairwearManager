@@ -25,6 +25,8 @@ const emptyFlatItem = {
   flatPrice: 0,
 }
 
+const fieldLabel = 'mb-1 block text-xs font-medium text-slate-500'
+
 type NumericInputProps = Omit<React.ComponentProps<'input'>, 'value' | 'onChange' | 'type'> & {
   value?: number | null
   onChange: (value: number) => void
@@ -82,96 +84,111 @@ export function StudyOrderItemsTable() {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-slate-500 text-left">
-              <th className="pb-2 pr-2">Désignation</th>
-              <th className="pb-2 px-2 text-right">Patronage</th>
-              <th className="pb-2 px-2 text-right">Prototype</th>
-              <th className="pb-2 px-2 text-center">Gradation (tailles × prix)</th>
-              <th className="pb-2 px-2 text-right">Total gradations</th>
-              <th className="pb-2 px-2 text-right">Total</th>
-              <th className="pb-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map((field, index) => {
-              const item = items[index]
-              const isFlat = item?.kind === 'FLAT'
+      {fields.length === 0 && (
+        <p className="py-4 text-center text-sm text-slate-400">Aucune ligne</p>
+      )}
 
-              return (
-                <tr key={field.id} className="border-b">
-                  <td className="py-2 pr-2">
-                    <FormField control={control} name={`items.${index}.designation`} render={({ field }) => (
-                      <FormItem><FormControl><Input {...field} placeholder="Gradation modèle X" /></FormControl><FormMessage /></FormItem>
+      {fields.map((field, index) => {
+        const item = items[index]
+        const isFlat = item?.kind === 'FLAT'
+
+        return (
+          <div key={field.id} className="space-y-3 rounded-xl border border-slate-200 p-3 sm:p-4">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <FormField control={control} name={`items.${index}.designation`} render={({ field }) => (
+                  <FormItem>
+                    <FormControl><Input {...field} placeholder="Désignation (ex. Gradation modèle X)" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => remove(index)}>
+                <Trash2 size={16} />
+              </Button>
+            </div>
+
+            {isFlat ? (
+              <div className="grid grid-cols-2 items-end gap-2">
+                <div>
+                  <label className={fieldLabel}>Tarif unique</label>
+                  <FormField control={control} name={`items.${index}.flatPrice`} render={({ field }) => (
+                    <FormItem>
+                      <FormControl><NumericInput value={field.value} onChange={field.onChange} className="text-right" placeholder="Tarif unique" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+                <div>
+                  <label className={fieldLabel}>Total</label>
+                  <div className="flex h-8 items-center justify-end rounded-lg border border-transparent px-2.5 text-sm font-medium">
+                    <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={fieldLabel}>Patronage</label>
+                    <FormField control={control} name={`items.${index}.patronage`} render={({ field }) => (
+                      <FormItem>
+                        <FormControl><NumericInput value={field.value} onChange={field.onChange} className="text-right" placeholder="0" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )} />
-                  </td>
-                  {isFlat ? (
-                    <>
-                      <td className="py-2 px-2" colSpan={4}>
-                        <FormField control={control} name={`items.${index}.flatPrice`} render={({ field }) => (
-                          <FormItem><FormControl>
-                            <NumericInput value={field.value} onChange={field.onChange} className="w-40 text-right" placeholder="Tarif unique" />
-                          </FormControl><FormMessage /></FormItem>
-                        )} />
-                      </td>
-                      <td className="py-2 px-2 text-right font-medium">
-                        <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="py-2 px-2">
-                        <FormField control={control} name={`items.${index}.patronage`} render={({ field }) => (
-                          <FormItem><FormControl>
-                            <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
-                          </FormControl><FormMessage /></FormItem>
-                        )} />
-                      </td>
-                      <td className="py-2 px-2">
-                        <FormField control={control} name={`items.${index}.proto`} render={({ field }) => (
-                          <FormItem><FormControl>
-                            <NumericInput value={field.value} onChange={field.onChange} className="w-24 text-right" placeholder="0" />
-                          </FormControl><FormMessage /></FormItem>
-                        )} />
-                      </td>
-                      <td className="py-2 px-2">
-                        <div className="flex items-center justify-center gap-1">
-                          <FormField control={control} name={`items.${index}.gradationSizes`} render={({ field }) => (
-                            <FormItem><FormControl>
-                              <NumericInput integer value={field.value} onChange={field.onChange} className="w-14 text-center" placeholder="nb" />
-                            </FormControl><FormMessage /></FormItem>
-                          )} />
-                          <span className="text-slate-400">×</span>
-                          <FormField control={control} name={`items.${index}.gradationUnitPrice`} render={({ field }) => (
-                            <FormItem><FormControl>
-                              <NumericInput value={field.value} onChange={field.onChange} className="w-20 text-right" placeholder="prix" />
-                            </FormControl><FormMessage /></FormItem>
-                          )} />
-                        </div>
-                      </td>
-                      <td className="py-2 px-2 text-right font-medium">
-                        <CurrencyDisplay amount={gradationTotal(index)} currency={currency} />
-                      </td>
-                      <td className="py-2 px-2 text-right font-medium">
-                        <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
-                      </td>
-                    </>
-                  )}
-                  <td className="py-2 pl-2">
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                      <Trash2 size={14} />
-                    </Button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                  <div>
+                    <label className={fieldLabel}>Prototype</label>
+                    <FormField control={control} name={`items.${index}.proto`} render={({ field }) => (
+                      <FormItem>
+                        <FormControl><NumericInput value={field.value} onChange={field.onChange} className="text-right" placeholder="0" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
 
-      <div className="flex gap-2">
+                <div>
+                  <label className={fieldLabel}>Gradation (tailles × prix)</label>
+                  <div className="flex items-center gap-2">
+                    <FormField control={control} name={`items.${index}.gradationSizes`} render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl><NumericInput integer value={field.value} onChange={field.onChange} className="text-center" placeholder="nb" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <span className="shrink-0 text-slate-400">×</span>
+                    <FormField control={control} name={`items.${index}.gradationUnitPrice`} render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl><NumericInput value={field.value} onChange={field.onChange} className="text-right" placeholder="prix" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 items-end gap-2">
+                  <div>
+                    <label className={fieldLabel}>Total gradations</label>
+                    <div className="flex h-8 items-center justify-end rounded-lg border border-transparent px-2.5 text-sm font-medium">
+                      <CurrencyDisplay amount={gradationTotal(index)} currency={currency} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={fieldLabel}>Total</label>
+                    <div className="flex h-8 items-center justify-end rounded-lg border border-transparent px-2.5 text-sm font-medium">
+                      <CurrencyDisplay amount={lineTotal(index)} currency={currency} />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })}
+
+      <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="outline"
@@ -191,7 +208,7 @@ export function StudyOrderItemsTable() {
       </div>
 
       <div className="flex justify-end">
-        <div className="text-sm space-y-1 min-w-48">
+        <div className="w-full space-y-1 text-sm sm:w-auto sm:min-w-48">
           <div className="flex justify-between text-slate-600"><span>Total HT</span><CurrencyDisplay amount={totalHT} currency={currency} /></div>
           <div className="flex justify-between text-slate-600"><span>TVA {Math.round(vatRate * 100)}%</span><CurrencyDisplay amount={tva} currency={currency} /></div>
           <div className="flex justify-between font-bold text-slate-900 border-t pt-1"><span>Total TTC</span><CurrencyDisplay amount={ttc} currency={currency} /></div>
