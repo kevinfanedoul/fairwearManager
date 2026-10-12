@@ -127,7 +127,7 @@ export function ClientsTable() {
             }}
           />
         </div>
-        <Select value={type} onValueChange={(v) => setType(v ?? 'all')}>
+        <Select value={type} onValueChange={(v) => setType(v ?? 'all')} items={{ all: 'Tous les types', ...CLIENT_TYPE_LABELS }}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Type" />
           </SelectTrigger>

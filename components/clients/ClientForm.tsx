@@ -78,7 +78,7 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type de client</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} items={CLIENT_TYPE_LABELS}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner le type" />

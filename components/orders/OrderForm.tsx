@@ -162,7 +162,7 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Devise du devis</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? 'MAD'}>
+                    <Select onValueChange={field.onChange} value={field.value ?? 'MAD'} items={ORDER_CURRENCIES}>
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Choisir une devise" />
@@ -188,6 +188,7 @@ export function OrderForm({ mode = 'create', orderId, initialData }: OrderFormPr
                       <Select
                         onValueChange={(value) => field.onChange(value === 'true')}
                         value={field.value ? 'true' : 'false'}
+                        items={{ true: 'Avec fourniture de tissu', false: 'Sans fourniture de tissu' }}
                       >
                         <FormControl>
                           <SelectTrigger className="w-full">
