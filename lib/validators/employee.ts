@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const employeeSchema = z.object({
   name: z.string().min(1, 'Nom requis'),
   role: z.string().optional(),
+  color: z.string().optional(),
   hourlyRate: z.number().min(0).optional(),
   active: z.boolean().optional(),
 })

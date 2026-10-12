@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   const todos = await prisma.todo.findMany({
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-    include: { assignee: { select: { id: true, name: true } } },
+    include: { assignee: { select: { id: true, name: true, color: true } } },
   })
   return NextResponse.json(todos)
 }

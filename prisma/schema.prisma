@@ -291,6 +291,7 @@ model Employee {
   id         String   @id @default(uuid())
   name       String
   role       String?
+  color      String?
   hourlyRate Decimal  @db.Decimal(8, 2)
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())

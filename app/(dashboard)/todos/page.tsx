@@ -26,7 +26,7 @@ type TodoItem = {
   dueDate: string | null
   notes: string | null
   assigneeId: string | null
-  assignee: { id: string; name: string } | null
+  assignee: { id: string; name: string; color: string | null } | null
 }
 
 type EmployeeItem = { id: string; name: string }
@@ -240,7 +240,11 @@ export default function TodosPage() {
                 </div>
                 <div className="space-y-2 p-3">
                   {items.map((todo) => (
-                    <Card key={todo.id} className={todo.status === 'DONE' ? 'opacity-60' : ''}>
+                    <Card
+                      key={todo.id}
+                      className={todo.status === 'DONE' ? 'opacity-60' : ''}
+                      style={todo.assignee?.color ? { backgroundColor: todo.assignee.color } : undefined}
+                    >
                       <CardContent className="py-3 space-y-2">
                         <p className={`font-medium ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
                           {todo.title}

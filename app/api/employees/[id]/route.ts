@@ -20,6 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     data: {
       ...(parsed.data.name !== undefined && { name: parsed.data.name }),
       ...(parsed.data.role !== undefined && { role: parsed.data.role || null }),
+      ...(parsed.data.color !== undefined && { color: parsed.data.color || null }),
       ...(parsed.data.hourlyRate !== undefined && { hourlyRate: parsed.data.hourlyRate }),
       ...(parsed.data.active !== undefined && { active: parsed.data.active }),
     },

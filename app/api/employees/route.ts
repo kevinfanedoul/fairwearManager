@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: parsed.data.name,
       role: parsed.data.role || null,
+      color: parsed.data.color || null,
       hourlyRate: parsed.data.hourlyRate ?? 0,
     },
   })
