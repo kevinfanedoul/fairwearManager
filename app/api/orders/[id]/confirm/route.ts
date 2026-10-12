@@ -30,6 +30,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         title: taskTitle,
         status: 'TODO',
         dueDate: order.deadline ?? undefined,
+        amount: order.totalTTC,
+        currency: order.currency,
       },
     }),
   ])

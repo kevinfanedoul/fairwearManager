@@ -406,6 +406,8 @@ model Todo {
   assignee   Employee?  @relation(fields: [assigneeId], references: [id])
   notes      String?
   dueDate   DateTime?
+  amount     Decimal?  @db.Decimal(12, 2)
+  currency   String?
   important  Boolean    @default(false)
   sortOrder  Int        @default(0)
   createdAt DateTime   @default(now())

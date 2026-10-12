@@ -18,6 +18,7 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { todoSchema, todoEditSchema, type TodoInput, type TodoEditInput } from '@/lib/validators/todo'
+import { formatCurrency, type OrderCurrency } from '@/lib/currencies'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -38,6 +39,8 @@ type TodoItem = {
   notes: string | null
   important: boolean
   sortOrder: number
+  amount: string | null
+  currency: string | null
   createdAt: string
   assigneeId: string | null
   assignee: { id: string; name: string; color: string | null } | null
@@ -492,6 +495,11 @@ function TodoCard({ todo, onEdit }: { todo: TodoItem; onEdit: (todo: TodoItem) =
         {todo.dueDate && (
           <p className="text-xs text-slate-400">
             Échéance : {format(new Date(todo.dueDate), 'dd/MM/yyyy', { locale: fr })}
+          </p>
+        )}
+        {todo.amount != null && (
+          <p className="text-xs font-medium text-slate-600">
+            Montant : {formatCurrency(todo.amount, (todo.currency as OrderCurrency) ?? 'MAD')}
           </p>
         )}
         {todo.notes && (
