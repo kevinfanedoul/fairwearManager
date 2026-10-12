@@ -2,19 +2,28 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { todoSchema, type TodoInput } from '@/lib/validators/todo'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
+import { todoSchema, todoEditSchema, type TodoInput, type TodoEditInput } from '@/lib/validators/todo'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
-import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Card, CardContent } from '@/components/ui/card'
 import { TODO_STATUS_LABELS, type TodoStatus } from '@/types'
-import { Plus, UserRound } from 'lucide-react'
+import { Plus, UserRound, MessageSquare, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -31,17 +40,6 @@ type TodoItem = {
 
 type EmployeeItem = { id: string; name: string }
 
-type ViewMode = 'kanban' | 'list'
-
-const statusVariants: Record<string, 'info' | 'warning' | 'danger' | 'success' | 'muted'> = {
-  TODO: 'muted',
-  IN_PROGRESS: 'info',
-  BLOCKED: 'danger',
-  DONE: 'success',
-}
-
-const STATUS_ORDER: TodoStatus[] = ['BLOCKED', 'IN_PROGRESS', 'TODO', 'DONE']
-
 const KANBAN_COLUMNS: {
   key: TodoStatus
   label: string
@@ -56,7 +54,7 @@ const KANBAN_COLUMNS: {
 
 export default function TodosPage() {
   const [open, setOpen] = useState(false)
-  const [view, setView] = useState<ViewMode>('kanban')
+  const [editing, setEditing] = useState<TodoItem | null>(null)
   const queryClient = useQueryClient()
 
   const { data: todos, isLoading } = useQuery<TodoItem[]>({
@@ -78,8 +76,12 @@ export default function TodosPage() {
   })
 
   const form = useForm<TodoInput>({
-    resolver: zodResolver(todoSchema) as any,
+    resolver: zodResolver(todoSchema) as Resolver<TodoInput>,
     defaultValues: { title: '', status: 'TODO' },
+  })
+
+  const editForm = useForm<TodoEditInput>({
+    resolver: zodResolver(todoEditSchema) as Resolver<TodoEditInput>,
   })
 
   const createMutation = useMutation({
@@ -99,25 +101,12 @@ export default function TodosPage() {
     },
   })
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
       const res = await fetch(`/api/todos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      if (!res.ok) throw new Error('Erreur')
-      return res.json()
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
-  })
-
-  const assignMutation = useMutation({
-    mutationFn: async ({ id, assigneeId }: { id: string; assigneeId: string }) => {
-      const res = await fetch(`/api/todos/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assigneeId }),
+        body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error('Erreur')
       return res.json()
@@ -133,11 +122,6 @@ export default function TodosPage() {
     return map
   }, [employees])
 
-  const sorted = useMemo(
-    () => (todos ? [...todos].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)) : []),
-    [todos]
-  )
-
   const byStatus = useMemo(() => {
     const map: Record<TodoStatus, TodoItem[]> = { TODO: [], IN_PROGRESS: [], BLOCKED: [], DONE: [] }
     for (const todo of todos ?? []) {
@@ -146,27 +130,50 @@ export default function TodosPage() {
     return map
   }, [todos])
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) return
+    const status = over.id as TodoStatus
+    if (!TODO_STATUS_LABELS[status]) return
+    updateMutation.mutate({ id: active.id as string, data: { status } })
+  }
+
+  const openEdit = (todo: TodoItem) => {
+    editForm.reset({
+      title: todo.title,
+      assigneeId: todo.assigneeId ?? '__none__',
+      dueDate: todo.dueDate ?? '',
+      notes: todo.notes ?? '',
+    })
+    setEditing(todo)
+  }
+
+  const submitEdit = (data: TodoEditInput) => {
+    if (!editing) return
+    updateMutation.mutate(
+      {
+        id: editing.id,
+        data: {
+          title: data.title,
+          assigneeId: data.assigneeId === '__none__' ? '' : data.assigneeId,
+          dueDate: data.dueDate,
+          notes: data.notes,
+        },
+      },
+      { onSuccess: () => setEditing(null) }
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Tâches</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-            <button
-              type="button"
-              onClick={() => setView('kanban')}
-              className={view === 'kanban' ? 'rounded-md bg-white px-3 py-1 text-sm font-medium shadow-sm' : 'rounded-md px-3 py-1 text-sm text-slate-500'}
-            >
-              Kanban
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('list')}
-              className={view === 'list' ? 'rounded-md bg-white px-3 py-1 text-sm font-medium shadow-sm' : 'rounded-md px-3 py-1 text-sm text-slate-500'}
-            >
-              Liste
-            </button>
-          </div>
           <Link href="/employees" className={buttonVariants({ variant: 'outline' })}>
             <UserRound size={16} className="mr-2" />Personnes
           </Link>
@@ -212,7 +219,7 @@ export default function TodosPage() {
                   )} />
                   <FormField control={form.control} name="notes" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes</FormLabel>
+                      <FormLabel>Commentaire</FormLabel>
                       <FormControl><Textarea {...field} rows={2} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -227,97 +234,35 @@ export default function TodosPage() {
         </div>
       </div>
 
-      {isLoading ? <div className="text-slate-500">Chargement…</div> : view === 'kanban' ? (
-        <div className="grid grid-cols-4 gap-4">
-          {KANBAN_COLUMNS.map((col) => {
-            const items = byStatus[col.key]
-            return (
-              <div key={col.key} className="rounded-xl border border-slate-200 bg-slate-50">
-                <div className={`flex items-center gap-2 rounded-t-xl border-b border-slate-200 px-3 py-2 ${col.headerClass}`}>
-                  <span className={`h-2 w-2 rounded-full ${col.dotClass}`} />
-                  <span className="text-sm font-semibold">{col.label}</span>
-                  <span className="ml-auto text-xs font-medium">{items.length}</span>
-                </div>
-                <div className="space-y-2 p-3">
-                  {items.map((todo) => (
-                    <Card
-                      key={todo.id}
-                      className={todo.status === 'DONE' ? 'opacity-60' : ''}
-                      style={todo.assignee?.color ? { backgroundColor: todo.assignee.color } : undefined}
-                    >
-                      <CardContent className="py-3 space-y-2">
-                        <p className={`font-medium ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
-                          {todo.title}
-                        </p>
-                        {todo.dueDate && (
-                          <p className="text-xs text-slate-400">
-                            Échéance : {format(new Date(todo.dueDate), 'dd/MM/yyyy', { locale: fr })}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <Select
-                            value={todo.assigneeId ?? '__none__'}
-                            onValueChange={(v) => assignMutation.mutate({ id: todo.id, assigneeId: !v || v === '__none__' ? '' : v })}
-                            items={assigneeItems}
-                          >
-                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Non assigné</SelectItem>
-                              {employees?.map((e) => (
-                                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={todo.status}
-                            onValueChange={(status) => { if (status) updateStatusMutation.mutate({ id: todo.id, status }) }}
-                            items={TODO_STATUS_LABELS}
-                          >
-                            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(TODO_STATUS_LABELS).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {items.length === 0 && (
-                    <p className="py-6 text-center text-xs text-slate-400">Aucune tâche</p>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      {isLoading ? (
+        <div className="text-slate-500">Chargement…</div>
       ) : (
-        <div className="space-y-2">
-          {sorted.map((todo) => (
-            <Card key={todo.id} className={todo.status === 'DONE' ? 'opacity-60' : ''}>
-              <CardContent className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <StatusBadge label={TODO_STATUS_LABELS[todo.status]} variant={statusVariants[todo.status]} />
-                  <div>
-                    <p className={`font-medium ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>{todo.title}</p>
-                    {todo.dueDate && (
-                      <p className="text-xs text-slate-400">
-                        Échéance : {format(new Date(todo.dueDate), 'dd/MM/yyyy', { locale: fr })}
-                      </p>
-                    )}
-                    {todo.assignee && (
-                      <p className="text-xs text-slate-500">{todo.assignee.name}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={todo.assigneeId ?? '__none__'}
-                    onValueChange={(v) => assignMutation.mutate({ id: todo.id, assigneeId: !v || v === '__none__' ? '' : v })}
-                    items={assigneeItems}
-                  >
-                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {KANBAN_COLUMNS.map((col) => (
+              <KanbanColumn key={col.key} col={col} items={byStatus[col.key]} onEdit={openEdit} />
+            ))}
+          </div>
+        </DndContext>
+      )}
+
+      <Dialog open={editing !== null} onOpenChange={(o) => { if (!o) setEditing(null) }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier la tâche</DialogTitle></DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(submitEdit)} className="space-y-4">
+              <FormField control={editForm.control} name="title" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Titre</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={editForm.control} name="assigneeId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Personne assignée</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? '__none__'} items={assigneeItems}>
+                    <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
                     <SelectContent>
                       <SelectItem value="__none__">Non assigné</SelectItem>
                       {employees?.map((e) => (
@@ -325,27 +270,116 @@ export default function TodosPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select
-                    value={todo.status}
-                    onValueChange={(status) => { if (status) updateStatusMutation.mutate({ id: todo.id, status }) }}
-                    items={TODO_STATUS_LABELS}
-                  >
-                    <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(TODO_STATUS_LABELS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {sorted.length === 0 && (
-            <p className="text-slate-400 text-center py-8">Aucune tâche</p>
-          )}
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={editForm.control} name="dueDate" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date limite (optionnel)</FormLabel>
+                  <FormControl>
+                    <Input type="date"
+                      value={field.value ? field.value.split('T')[0] : ''}
+                      onChange={e => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : '')} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={editForm.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Commentaire</FormLabel>
+                  <FormControl><Textarea {...field} rows={3} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditing(null)}>Annuler</Button>
+                <Button type="submit" disabled={updateMutation.isPending}>Enregistrer</Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function KanbanColumn({ col, items, onEdit }: {
+  col: (typeof KANBAN_COLUMNS)[number]
+  items: TodoItem[]
+  onEdit: (todo: TodoItem) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: col.key })
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50">
+      <div className={`flex items-center gap-2 rounded-t-xl border-b border-slate-200 px-3 py-2 ${col.headerClass}`}>
+        <span className={`h-2 w-2 rounded-full ${col.dotClass}`} />
+        <span className="text-sm font-semibold">{col.label}</span>
+        <span className="ml-auto text-xs font-medium">{items.length}</span>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={`space-y-2 p-3 min-h-[96px] transition-colors ${isOver ? 'bg-slate-100' : ''}`}
+      >
+        {items.map((todo) => (
+          <TodoCard key={todo.id} todo={todo} onEdit={onEdit} />
+        ))}
+        {items.length === 0 && (
+          <p className="py-6 text-center text-xs text-slate-400">Aucune tâche</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TodoCard({ todo, onEdit }: { todo: TodoItem; onEdit: (todo: TodoItem) => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: todo.id })
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        opacity: isDragging ? 0.5 : undefined,
+      }}
+      className={`cursor-grab rounded-xl bg-card text-sm text-card-foreground ring-1 ring-foreground/10 active:cursor-grabbing ${todo.status === 'DONE' ? 'opacity-60' : ''}`}
+    >
+      <div className="space-y-2 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <p className={`font-medium ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
+            {todo.title}
+          </p>
+          <button
+            type="button"
+            onClick={() => onEdit(todo)}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
+            aria-label="Modifier la tâche"
+          >
+            <Pencil size={14} />
+          </button>
         </div>
-      )}
+        {todo.assignee && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+            style={{ backgroundColor: todo.assignee.color ?? '#e2e8f0' }}
+          >
+            <UserRound size={12} />
+            {todo.assignee.name}
+          </span>
+        )}
+        {todo.dueDate && (
+          <p className="text-xs text-slate-400">
+            Échéance : {format(new Date(todo.dueDate), 'dd/MM/yyyy', { locale: fr })}
+          </p>
+        )}
+        {todo.notes && (
+          <p className="flex items-start gap-1 text-xs text-slate-500">
+            <MessageSquare size={12} className="mt-0.5 shrink-0" />
+            <span className="line-clamp-2">{todo.notes}</span>
+          </p>
+        )}
+      </div>
     </div>
   )
 }
