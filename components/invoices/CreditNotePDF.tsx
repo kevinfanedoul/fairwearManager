@@ -1,7 +1,8 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image as PdfImage } from '@react-pdf/renderer'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatCurrency, type OrderCurrency } from '@/lib/currencies'
+import { logoDataUri, stampDataUri } from '@/lib/pdf-assets'
 
 const accent = '#f4a46f'
 const dark = '#111827'
@@ -18,8 +19,7 @@ const styles = StyleSheet.create({
     color: dark,
   },
   brandWrap: { alignItems: 'center', marginBottom: 12 },
-  brandTitle: { fontSize: 48, fontFamily: 'Helvetica-Bold', letterSpacing: 1.2 },
-  brandSubtitle: { marginTop: -4, fontSize: 21, letterSpacing: 7 },
+  brandImage: { width: 220, height: 58 },
   orangeBand: { backgroundColor: accent, paddingVertical: 7, paddingHorizontal: 14, textAlign: 'center', marginBottom: 16 },
   orangeBandText: { textAlign: 'center', fontSize: 10.5, fontFamily: 'Helvetica-Bold', lineHeight: 1.45 },
   titleLine: { textAlign: 'center', fontSize: 14, fontFamily: 'Helvetica-Bold', marginBottom: 16 },
@@ -46,9 +46,7 @@ const styles = StyleSheet.create({
   statusBox: { minHeight: 120, justifyContent: 'space-between' },
   statusHint: { backgroundColor: accent, paddingVertical: 4, paddingHorizontal: 8 },
   statusHintText: { textAlign: 'center', fontSize: 9.2, fontFamily: 'Helvetica-Bold' },
-  stampCircle: { width: 78, height: 78, borderRadius: 39, borderWidth: 1.5, borderColor: '#cbd5e1', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  stampInner: { textAlign: 'center', fontSize: 9, fontFamily: 'Helvetica-Bold', lineHeight: 1.3 },
-  highlightText: { color: '#c65a5a', fontSize: 10.5, fontFamily: 'Helvetica-Bold', textAlign: 'center', lineHeight: 1.5 },
+  stampImage: { width: 84, height: 80 },
   footerBand: { backgroundColor: accent, height: 16, marginBottom: 10 },
   footerText: { textAlign: 'center', fontSize: 9.5, lineHeight: 1.55, fontFamily: 'Helvetica-Bold' },
   notes: { marginBottom: 12, fontSize: 9.5, color: muted, lineHeight: 1.45 },
@@ -104,8 +102,7 @@ export function CreditNotePDF({ creditNote }: CreditNotePDFProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.brandWrap}>
-          <Text style={styles.brandTitle}>FAIRWEAR</Text>
-          <Text style={styles.brandSubtitle}>MANUFACTURE</Text>
+          <PdfImage src={logoDataUri} style={styles.brandImage} />
         </View>
 
         <View style={styles.orangeBand}>
@@ -199,14 +196,7 @@ export function CreditNotePDF({ creditNote }: CreditNotePDFProps) {
                 <Text style={styles.statusHintText}>Document d’avoir client</Text>
               </View>
               <View style={{ alignItems: 'center', marginTop: 18 }}>
-                <View style={styles.stampCircle}>
-                  <Text style={styles.stampInner}>FAIRWEAR{'\n'}MANUFACTURE</Text>
-                </View>
-                <Text style={styles.highlightText}>
-                  Avoir édité le{'\n'}
-                  {format(new Date(creditNote.issueDate), 'dd/MM/yyyy', { locale: fr })}{'\n'}
-                  {formatCurrency(creditNote.totalTTC, creditNote.currency)}
-                </Text>
+                <PdfImage src={stampDataUri} style={styles.stampImage} />
               </View>
             </View>
           </View>

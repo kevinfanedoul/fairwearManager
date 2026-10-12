@@ -1,8 +1,10 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image as PdfImage } from '@react-pdf/renderer'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatCurrency, type OrderCurrency } from '@/lib/currencies'
 import { SIZE_COLUMNS } from '@/lib/order-sizes'
+import { formatAmountInWords } from '@/lib/number-to-words'
+import { logoDataUri, stampDataUri } from '@/lib/pdf-assets'
 
 const accent = '#f4a46f'
 const dark = '#111827'
@@ -22,15 +24,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  brandTitle: {
-    fontSize: 48,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1.2,
-  },
-  brandSubtitle: {
-    marginTop: -4,
-    fontSize: 21,
-    letterSpacing: 7,
+  brandImage: {
+    width: 220,
+    height: 58,
   },
   orangeBand: {
     backgroundColor: accent,
@@ -164,28 +160,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
   },
-  stampCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  stampInner: {
-    textAlign: 'center',
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    lineHeight: 1.3,
-  },
-  paidText: {
-    color: '#c65a5a',
-    fontSize: 10.5,
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'center',
-    lineHeight: 1.5,
+  stampImage: {
+    width: 84,
+    height: 80,
   },
   footerBand: {
     backgroundColor: accent,
@@ -260,11 +237,6 @@ function formatClientAddress(invoice: InvoicePDFProps['invoice']) {
   return [invoice.client.address, invoice.client.city].filter(Boolean).join(' - ')
 }
 
-function formatAmountForWords(amount: number, currency: OrderCurrency) {
-  const label = currency === 'MAD' ? 'Dirhams' : currency === 'EUR' ? 'Euros' : currency
-  return `${formatCurrency(amount, currency)} (${label})`
-}
-
 function quantityLabel(item: InvoiceItem) {
   return String(item.quantity || 0)
 }
@@ -274,6 +246,7 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
   const clientAddress = formatClientAddress(invoice)
   const currency = invoice.order?.currency ?? invoice.currency
   const items = invoice.order?.items ?? []
+  const amountWords = formatAmountInWords(invoice.totalTTC, currency)
 
   const visibleSizeColumns = SIZE_COLUMNS.filter((col) =>
     items.some((item) => (item[col.key] ?? 0) > 0)
@@ -285,8 +258,7 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.brandWrap}>
-          <Text style={styles.brandTitle}>FAIRWEAR</Text>
-          <Text style={styles.brandSubtitle}>MANUFACTURE</Text>
+          <PdfImage src={logoDataUri} style={styles.brandImage} />
         </View>
 
         <View style={styles.orangeBand}>
@@ -479,7 +451,8 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
         </View>
 
         <Text style={styles.amountWords}>
-          Arrêtée la présente facture à la somme de : {formatAmountForWords(invoice.totalTTC, currency)}
+          Arrêtée la présente facture à la somme de :{' '}
+          {amountWords.charAt(0).toUpperCase() + amountWords.slice(1)}
         </Text>
 
         <View style={styles.lowerBlocks}>
@@ -505,14 +478,7 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
                 <Text style={styles.paymentHintText}>En votre aimable règlement à réception</Text>
               </View>
               <View style={styles.paymentStatus}>
-                <View style={styles.stampCircle}>
-                  <Text style={styles.stampInner}>FAIRWEAR{'\n'}MANUFACTURE</Text>
-                </View>
-                <Text style={styles.paidText}>
-                  Facture éditée le{'\n'}
-                  {format(new Date(invoice.issueDate), 'dd/MM/yyyy', { locale: fr })}{'\n'}
-                  {formatCurrency(invoice.totalTTC, currency)}
-                </Text>
+                <PdfImage src={stampDataUri} style={styles.stampImage} />
               </View>
             </View>
           </View>
