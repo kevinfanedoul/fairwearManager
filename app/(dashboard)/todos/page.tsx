@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { todoSchema, type TodoInput } from '@/lib/validators/todo'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -14,7 +14,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { TODO_STATUS_LABELS } from '@/types'
-import { Plus } from 'lucide-react'
+import { Plus, UserRound } from 'lucide-react'
+import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -33,6 +34,15 @@ export default function TodosPage() {
     queryKey: ['todos'],
     queryFn: async () => {
       const res = await fetch('/api/todos')
+      if (!res.ok) throw new Error('Erreur')
+      return res.json()
+    },
+  })
+
+  const { data: employees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const res = await fetch('/api/employees')
       if (!res.ok) throw new Error('Erreur')
       return res.json()
     },
@@ -73,6 +83,19 @@ export default function TodosPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
   })
 
+  const assignMutation = useMutation({
+    mutationFn: async ({ id, assigneeId }: { id: string; assigneeId: string }) => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigneeId }),
+      })
+      if (!res.ok) throw new Error('Erreur')
+      return res.json()
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+  })
+
   const statusOrder = ['BLOCKED', 'IN_PROGRESS', 'TODO', 'DONE']
   const sorted = todos ? [...todos].sort((a: any, b: any) =>
     statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
@@ -82,10 +105,14 @@ export default function TodosPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tâches</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger>
-            <Button><Plus size={16} className="mr-2" />Nouvelle tâche</Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Link href="/employees" className={buttonVariants({ variant: 'outline' })}>
+            <UserRound size={16} className="mr-2" />Personnes
+          </Link>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger>
+              <Button><Plus size={16} className="mr-2" />Nouvelle tâche</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nouvelle tâche</DialogTitle></DialogHeader>
             <Form {...form}>
@@ -135,7 +162,8 @@ export default function TodosPage() {
               </form>
             </Form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {isLoading ? <div className="text-slate-500">Chargement…</div> : (
@@ -152,19 +180,38 @@ export default function TodosPage() {
                         Échéance : {format(new Date(todo.dueDate), 'dd/MM/yyyy', { locale: fr })}
                       </p>
                     )}
+                    {todo.assignee && (
+                      <p className="text-xs text-slate-500">
+                        {todo.assignee.name}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Select
-                  value={todo.status}
-                  onValueChange={(status) => updateStatusMutation.mutate({ id: todo.id, status })}
-                >
-                  <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TODO_STATUS_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={todo.assigneeId ?? '__none__'}
+                    onValueChange={(v) => assignMutation.mutate({ id: todo.id, assigneeId: v === '__none__' ? '' : v })}
+                  >
+                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Non assigné</SelectItem>
+                      {employees?.map((e: { id: string; name: string }) => (
+                        <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={todo.status}
+                    onValueChange={(status) => updateStatusMutation.mutate({ id: todo.id, status })}
+                  >
+                    <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TODO_STATUS_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
           ))}

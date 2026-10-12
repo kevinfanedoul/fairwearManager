@@ -14,9 +14,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Seul un devis peut être confirmé' }, { status: 400 })
   }
 
+  const taskTitle =
+    order.type === 'STUDY'
+      ? `Bureau d'études — ${order.reference}`
+      : `Production — ${order.reference}`
+
   const [updatedOrder] = await prisma.$transaction([
     prisma.order.update({ where: { id }, data: { status: 'CONFIRMED' } }),
     prisma.productionPlan.create({ data: { orderId: id } }),
+    prisma.todo.create({
+      data: {
+        title: taskTitle,
+        status: 'TODO',
+        dueDate: order.deadline ?? undefined,
+      },
+    }),
   ])
 
   return NextResponse.json(updatedOrder)

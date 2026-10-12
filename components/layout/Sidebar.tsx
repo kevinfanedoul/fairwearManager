@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/layout/BrandLogo'
 import {
-  Users, ShoppingBag, FileText, Wallet, CheckSquare, LayoutDashboard,
+  Users, ShoppingBag, FileText, Wallet, CheckSquare, LayoutDashboard, UserRound,
 } from 'lucide-react'
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { label: 'Factures', href: '/invoices', icon: FileText },
   { label: 'Trésorerie', href: '/treasury', icon: Wallet },
   { label: 'Tâches', href: '/todos', icon: CheckSquare },
+  { label: 'Personnes', href: '/employees', icon: UserRound },
 ]
 
 export function Sidebar() {

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   const todos = await prisma.todo.findMany({
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-    include: { owner: { select: { id: true, name: true } } },
+    include: { assignee: { select: { id: true, name: true } } },
   })
   return NextResponse.json(todos)
 }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     data: {
       title: parsed.data.title,
       status: parsed.data.status,
-      ownerId: parsed.data.ownerId || undefined,
+      assigneeId: parsed.data.assigneeId || null,
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : undefined,
       notes: parsed.data.notes,
     },

@@ -15,7 +15,6 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  todos          Todo[]
   productionItems ProductionPlanningItem[]
   timesheets     Timesheet[]
 }
@@ -298,6 +297,7 @@ model Employee {
 
   timesheets Timesheet[]
   salaries   Salary[]
+  todos      Todo[]
 }
 
 model Timesheet {
@@ -399,11 +399,11 @@ model SupplierPurchase {
 
 model Todo {
   id        String     @id @default(uuid())
-  title     String
-  status    TodoStatus @default(TODO)
-  ownerId   String?
-  owner     User?      @relation(fields: [ownerId], references: [id])
-  notes     String?
+  title      String
+  status     TodoStatus @default(TODO)
+  assigneeId String?
+  assignee   Employee?  @relation(fields: [assigneeId], references: [id])
+  notes      String?
   dueDate   DateTime?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
