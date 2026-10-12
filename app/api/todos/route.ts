@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       assigneeId: parsed.data.assigneeId || null,
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : undefined,
       notes: parsed.data.notes,
+      important: parsed.data.important ?? false,
     },
   })
   return NextResponse.json(todo, { status: 201 })

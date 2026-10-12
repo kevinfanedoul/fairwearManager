@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Todo" ADD COLUMN "important" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0;

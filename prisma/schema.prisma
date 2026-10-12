@@ -406,6 +406,8 @@ model Todo {
   assignee   Employee?  @relation(fields: [assigneeId], references: [id])
   notes      String?
   dueDate   DateTime?
+  important  Boolean    @default(false)
+  sortOrder  Int        @default(0)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }

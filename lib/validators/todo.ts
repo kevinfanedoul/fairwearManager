@@ -6,6 +6,7 @@ export const todoSchema = z.object({
   assigneeId: z.string().uuid().optional().or(z.literal('')),
   dueDate: z.string().datetime().optional().or(z.literal('')),
   notes: z.string().optional(),
+  important: z.boolean().optional(),
 })
 
 export type TodoInput = z.infer<typeof todoSchema>
@@ -15,6 +16,7 @@ export const todoEditSchema = z.object({
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(),
   notes: z.string().optional(),
+  important: z.boolean().optional(),
 })
 
 export type TodoEditInput = z.infer<typeof todoEditSchema>

@@ -21,6 +21,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       ...(parsed.data.title && { title: parsed.data.title }),
       ...(parsed.data.status && { status: parsed.data.status }),
       ...(parsed.data.notes !== undefined && { notes: parsed.data.notes }),
+      ...(parsed.data.important !== undefined && { important: parsed.data.important }),
       ...(parsed.data.dueDate !== undefined && { dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null }),
       ...(parsed.data.assigneeId !== undefined && { assigneeId: parsed.data.assigneeId || null }),
     },

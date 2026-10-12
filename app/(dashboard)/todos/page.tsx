@@ -8,12 +8,14 @@ import {
   DndContext,
   KeyboardSensor,
   PointerSensor,
-  useDraggable,
+  closestCorners,
   useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type UniqueIdentifier,
 } from '@dnd-kit/core'
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { todoSchema, todoEditSchema, type TodoInput, type TodoEditInput } from '@/lib/validators/todo'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -23,7 +25,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { TODO_STATUS_LABELS, type TodoStatus } from '@/types'
-import { Plus, UserRound, MessageSquare, Pencil } from 'lucide-react'
+import { Plus, UserRound, MessageSquare, Pencil, Star } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -34,11 +36,16 @@ type TodoItem = {
   status: TodoStatus
   dueDate: string | null
   notes: string | null
+  important: boolean
+  sortOrder: number
+  createdAt: string
   assigneeId: string | null
   assignee: { id: string; name: string; color: string | null } | null
 }
 
 type EmployeeItem = { id: string; name: string }
+
+type BoardState = Record<TodoStatus, TodoItem[]>
 
 const KANBAN_COLUMNS: {
   key: TodoStatus
@@ -51,6 +58,13 @@ const KANBAN_COLUMNS: {
   { key: 'BLOCKED', label: 'Bloqué', headerClass: 'bg-red-100 text-red-700', dotClass: 'bg-red-500' },
   { key: 'DONE', label: 'Terminé', headerClass: 'bg-green-100 text-green-700', dotClass: 'bg-green-500' },
 ]
+
+function findStatus(board: BoardState, id: UniqueIdentifier): TodoStatus | null {
+  for (const key of Object.keys(board) as TodoStatus[]) {
+    if (board[key].some((t) => t.id === id)) return key
+  }
+  return null
+}
 
 export default function TodosPage() {
   const [open, setOpen] = useState(false)
@@ -77,7 +91,7 @@ export default function TodosPage() {
 
   const form = useForm<TodoInput>({
     resolver: zodResolver(todoSchema) as Resolver<TodoInput>,
-    defaultValues: { title: '', status: 'TODO' },
+    defaultValues: { title: '', status: 'TODO', important: false },
   })
 
   const editForm = useForm<TodoEditInput>({
@@ -114,6 +128,19 @@ export default function TodosPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
   })
 
+  const reorderMutation = useMutation({
+    mutationFn: async (columns: Record<TodoStatus, string[]>) => {
+      const res = await fetch('/api/todos/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columns }),
+      })
+      if (!res.ok) throw new Error('Erreur')
+      return res.json()
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+  })
+
   const assigneeItems = useMemo(() => {
     const map: Record<string, string> = { __none__: 'Non assigné' }
     for (const e of employees ?? []) {
@@ -123,9 +150,12 @@ export default function TodosPage() {
   }, [employees])
 
   const byStatus = useMemo(() => {
-    const map: Record<TodoStatus, TodoItem[]> = { TODO: [], IN_PROGRESS: [], BLOCKED: [], DONE: [] }
+    const map: BoardState = { TODO: [], IN_PROGRESS: [], BLOCKED: [], DONE: [] }
     for (const todo of todos ?? []) {
       map[todo.status].push(todo)
+    }
+    for (const key of Object.keys(map) as TodoStatus[]) {
+      map[key].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt))
     }
     return map
   }, [todos])
@@ -137,10 +167,58 @@ export default function TodosPage() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-    if (!over) return
-    const status = over.id as TodoStatus
-    if (!TODO_STATUS_LABELS[status]) return
-    updateMutation.mutate({ id: active.id as string, data: { status } })
+    if (!over || active.id === over.id) return
+
+    const sourceStatus = findStatus(byStatus, active.id)
+    if (!sourceStatus) return
+
+    const overIsColumn = over.id in byStatus
+    const targetStatus = overIsColumn ? (over.id as TodoStatus) : findStatus(byStatus, over.id)
+    if (!targetStatus) return
+
+    const next: BoardState = {
+      TODO: [...byStatus.TODO],
+      IN_PROGRESS: [...byStatus.IN_PROGRESS],
+      BLOCKED: [...byStatus.BLOCKED],
+      DONE: [...byStatus.DONE],
+    }
+    const sourceItems = next[sourceStatus]
+    const activeIndex = sourceItems.findIndex((t) => t.id === active.id)
+    if (activeIndex === -1) return
+
+    if (sourceStatus === targetStatus && !overIsColumn) {
+      const newIndex = sourceItems.findIndex((t) => t.id === over.id)
+      if (newIndex >= 0) {
+        next[sourceStatus] = arrayMove(sourceItems, activeIndex, newIndex)
+      }
+    } else {
+      const [removed] = sourceItems.splice(activeIndex, 1)
+
+      if (overIsColumn) {
+        next[targetStatus] = [...next[targetStatus], removed]
+      } else {
+        const targetItems = [...next[targetStatus]]
+        const overIndex = targetItems.findIndex((t) => t.id === over.id)
+        const insertIndex = overIndex >= 0 ? overIndex : targetItems.length
+        targetItems.splice(insertIndex, 0, removed)
+        next[targetStatus] = targetItems
+      }
+    }
+
+    const flat: TodoItem[] = []
+    for (const key of Object.keys(next) as TodoStatus[]) {
+      next[key].forEach((t, index) => {
+        flat.push({ ...t, status: key, sortOrder: index })
+      })
+    }
+
+    queryClient.setQueryData<TodoItem[]>(['todos'], flat)
+    reorderMutation.mutate({
+      TODO: next.TODO.map((t) => t.id),
+      IN_PROGRESS: next.IN_PROGRESS.map((t) => t.id),
+      BLOCKED: next.BLOCKED.map((t) => t.id),
+      DONE: next.DONE.map((t) => t.id),
+    })
   }
 
   const openEdit = (todo: TodoItem) => {
@@ -149,6 +227,7 @@ export default function TodosPage() {
       assigneeId: todo.assigneeId ?? '__none__',
       dueDate: todo.dueDate ?? '',
       notes: todo.notes ?? '',
+      important: todo.important,
     })
     setEditing(todo)
   }
@@ -163,6 +242,7 @@ export default function TodosPage() {
           assigneeId: data.assigneeId === '__none__' ? '' : data.assigneeId,
           dueDate: data.dueDate,
           notes: data.notes,
+          important: data.important ?? false,
         },
       },
       { onSuccess: () => setEditing(null) }
@@ -224,6 +304,22 @@ export default function TodosPage() {
                       <FormMessage />
                     </FormItem>
                   )} />
+                  <FormField control={form.control} name="important" render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={field.value ?? false}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="size-4 accent-amber-500"
+                          />
+                          Tâche importante (top priorité)
+                        </label>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                   <Button type="submit" disabled={createMutation.isPending}>
                     {createMutation.isPending ? 'Création…' : 'Créer'}
                   </Button>
@@ -237,7 +333,7 @@ export default function TodosPage() {
       {isLoading ? (
         <div className="text-slate-500">Chargement…</div>
       ) : (
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {KANBAN_COLUMNS.map((col) => (
               <KanbanColumn key={col.key} col={col} items={byStatus[col.key]} onEdit={openEdit} />
@@ -291,6 +387,22 @@ export default function TodosPage() {
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={editForm.control} name="important" render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={field.value ?? false}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="size-4 accent-amber-500"
+                      />
+                      Tâche importante (top priorité)
+                    </label>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Annuler</Button>
                 <Button type="submit" disabled={updateMutation.isPending}>Enregistrer</Button>
@@ -308,7 +420,8 @@ function KanbanColumn({ col, items, onEdit }: {
   items: TodoItem[]
   onEdit: (todo: TodoItem) => void
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: col.key })
+  const { setNodeRef, isOver } = useDroppable({ id: col.key, data: { type: 'column' } })
+  const ids = items.map((t) => t.id)
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50">
       <div className={`flex items-center gap-2 rounded-t-xl border-b border-slate-200 px-3 py-2 ${col.headerClass}`}>
@@ -316,23 +429,25 @@ function KanbanColumn({ col, items, onEdit }: {
         <span className="text-sm font-semibold">{col.label}</span>
         <span className="ml-auto text-xs font-medium">{items.length}</span>
       </div>
-      <div
-        ref={setNodeRef}
-        className={`space-y-2 p-3 min-h-[96px] transition-colors ${isOver ? 'bg-slate-100' : ''}`}
-      >
-        {items.map((todo) => (
-          <TodoCard key={todo.id} todo={todo} onEdit={onEdit} />
-        ))}
-        {items.length === 0 && (
-          <p className="py-6 text-center text-xs text-slate-400">Aucune tâche</p>
-        )}
-      </div>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          className={`space-y-2 p-3 min-h-[96px] transition-colors ${isOver ? 'bg-slate-100' : ''}`}
+        >
+          {items.map((todo) => (
+            <TodoCard key={todo.id} todo={todo} onEdit={onEdit} />
+          ))}
+          {items.length === 0 && (
+            <p className="py-6 text-center text-xs text-slate-400">Aucune tâche</p>
+          )}
+        </div>
+      </SortableContext>
     </div>
   )
 }
 
 function TodoCard({ todo, onEdit }: { todo: TodoItem; onEdit: (todo: TodoItem) => void }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: todo.id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id })
   return (
     <div
       ref={setNodeRef}
@@ -340,15 +455,21 @@ function TodoCard({ todo, onEdit }: { todo: TodoItem; onEdit: (todo: TodoItem) =
       {...listeners}
       style={{
         transform: CSS.Transform.toString(transform),
+        transition,
         opacity: isDragging ? 0.5 : undefined,
       }}
-      className={`cursor-grab rounded-xl bg-card text-sm text-card-foreground ring-1 ring-foreground/10 active:cursor-grabbing ${todo.status === 'DONE' ? 'opacity-60' : ''}`}
+      className={`cursor-grab rounded-xl bg-card text-sm text-card-foreground active:cursor-grabbing ${todo.status === 'DONE' ? 'opacity-60' : ''} ${todo.important ? 'ring-2 ring-amber-400/70' : 'ring-1 ring-foreground/10'}`}
     >
       <div className="space-y-2 p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className={`font-medium ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
-            {todo.title}
-          </p>
+          <div className="flex items-start gap-1.5">
+            {todo.important && (
+              <Star size={14} className="mt-0.5 shrink-0 fill-amber-400 text-amber-400" />
+            )}
+            <p className={`font-medium ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
+              {todo.title}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => onEdit(todo)}
