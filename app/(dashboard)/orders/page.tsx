@@ -3,15 +3,17 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { ArrowDown, ArrowUp, ArrowUpDown, FilterX, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FilterX, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS } from '@/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const ALL_FILTER_VALUE = 'tous'
 
@@ -42,6 +44,7 @@ function clientLabel(client: ClientOption) {
 }
 
 export default function OrdersPage() {
+  const router = useRouter()
   const [selectedClientId, setSelectedClientId] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
   const [sortBy, setSortBy] = useState<SortField>('date')
@@ -110,7 +113,17 @@ export default function OrdersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Commandes & Devis</h1>
-        <Link href="/orders/new"><Button><Plus size={16} className="mr-2" />Nouveau devis</Button></Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button><Plus size={16} className="mr-2" />Nouveau devis<ChevronDown size={16} className="ml-1" /></Button>} />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => router.push('/orders/new')}>
+              Devis classique
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/orders/new?type=STUDY')}>
+              Devis bureau d&apos;études
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">

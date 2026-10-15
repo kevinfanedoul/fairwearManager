@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField, FormControl, FormItem, FormMessage } from '@/components/ui/form'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
+import { NumericInput } from '@/components/shared/NumericInput'
 import { Trash2, Plus } from 'lucide-react'
 import type { OrderInput } from '@/lib/validators/order'
 import { SIZE_COLUMNS } from '@/lib/order-sizes'
@@ -80,17 +81,22 @@ export function OrderItemsTable() {
                 <FormField control={control} name={`items.${index}.${col.key}`} render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input {...field} type="number" min="0" inputMode="numeric" className="w-full text-center" onChange={e => {
-                        const nextValue = parseInt(e.target.value) || 0
-                        field.onChange(nextValue)
+                      <NumericInput
+                        integer
+                        value={field.value}
+                        onChange={(nextValue) => {
+                          field.onChange(nextValue)
 
-                        const nextQuantity = SIZE_COLUMNS.reduce((sum, currentCol) => {
-                          const sizeValue = currentCol.key === col.key ? nextValue : (items[index]?.[currentCol.key] ?? 0)
-                          return sum + sizeValue
-                        }, 0)
+                          const nextQuantity = SIZE_COLUMNS.reduce((sum, currentCol) => {
+                            const sizeValue = currentCol.key === col.key ? nextValue : (items[index]?.[currentCol.key] ?? 0)
+                            return sum + sizeValue
+                          }, 0)
 
-                        setValue(`items.${index}.quantity`, nextQuantity, { shouldDirty: true, shouldValidate: true })
-                      }} />
+                          setValue(`items.${index}.quantity`, nextQuantity, { shouldDirty: true, shouldValidate: true })
+                        }}
+                        className="w-full text-center"
+                        placeholder="0"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -112,7 +118,7 @@ export function OrderItemsTable() {
               <label className={fieldLabel}>Prix unit.</label>
               <FormField control={control} name={`items.${index}.unitPrice`} render={({ field }) => (
                 <FormItem>
-                  <FormControl><Input {...field} type="number" min="0" step="0.01" inputMode="decimal" className="w-full text-right" onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl>
+                  <FormControl><NumericInput value={field.value} onChange={field.onChange} className="w-full text-right" placeholder="0" /></FormControl>
                 </FormItem>
               )} />
             </div>

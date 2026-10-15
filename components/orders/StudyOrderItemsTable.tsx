@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField, FormControl, FormItem, FormMessage } from '@/components/ui/form'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
+import { NumericInput } from '@/components/shared/NumericInput'
 import { Trash2, Plus } from 'lucide-react'
 import type { OrderInput } from '@/lib/validators/order'
 import { getVATRateForCurrency } from '@/lib/calculations/invoice'
@@ -26,36 +26,6 @@ const emptyFlatItem = {
 }
 
 const fieldLabel = 'mb-1 block text-xs font-medium text-slate-500'
-
-type NumericInputProps = Omit<React.ComponentProps<'input'>, 'value' | 'onChange' | 'type'> & {
-  value?: number | null
-  onChange: (value: number) => void
-  integer?: boolean
-}
-
-function NumericInput({ value, onChange, integer = false, ...props }: NumericInputProps) {
-  const [text, setText] = useState(() => (value != null && value !== 0 ? String(value) : ''))
-
-  function handleChange(next: string) {
-    setText(next)
-    if (next.trim() === '') {
-      onChange(0)
-      return
-    }
-    const parsed = integer ? parseInt(next, 10) : parseFloat(next)
-    onChange(Number.isFinite(parsed) ? parsed : 0)
-  }
-
-  return (
-    <Input
-      {...props}
-      type="text"
-      inputMode={integer ? 'numeric' : 'decimal'}
-      value={text}
-      onChange={(e) => handleChange(e.target.value)}
-    />
-  )
-}
 
 export function StudyOrderItemsTable() {
   const { control, watch } = useFormContext<OrderInput>()
