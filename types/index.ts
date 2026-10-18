@@ -7,10 +7,11 @@ import type {
   OrderType,
   InvoiceStatus,
   PaymentMethod,
+  CashEntryType,
   TodoStatus,
 } from '@prisma/client'
 
-export type { UserRole, ClientType, OrderStatus, OrderType, InvoiceStatus, PaymentMethod, TodoStatus }
+export type { UserRole, ClientType, OrderStatus, OrderType, InvoiceStatus, PaymentMethod, CashEntryType, TodoStatus }
 
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   PRODUCT: 'Produit',

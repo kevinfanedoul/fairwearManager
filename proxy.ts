@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 function isProtectedPath(pathname: string) {
-  return pathname === '/' || pathname.startsWith('/clients') || pathname.startsWith('/orders') || pathname.startsWith('/invoices') || pathname.startsWith('/todos')
+  return pathname === '/' || pathname.startsWith('/clients') || pathname.startsWith('/orders') || pathname.startsWith('/invoices') || pathname.startsWith('/treasury') || pathname.startsWith('/todos')
 }
 
 export async function proxy(request: NextRequest) {
