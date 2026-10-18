@@ -64,11 +64,11 @@ export async function POST(request: NextRequest) {
   const reference = formatOrderReference(type, year, lastSeq + 1)
 
   const itemsWithTotals = items.map((item) => {
-    if (type === 'STUDY') {
-      if (item.kind === 'FLAT') {
-        return { ...item, totalPrice: item.flatPrice ?? 0 }
-      }
+    if (item.kind === 'FLAT') {
+      return { ...item, totalPrice: item.flatPrice ?? 0 }
+    }
 
+    if (type === 'STUDY') {
       const gradationTotal = calculateStudyGradationTotal(item)
       const totalPrice = calculateStudyLineTotal({ ...item, gradationTotal })
       return { ...item, gradationTotal, totalPrice }

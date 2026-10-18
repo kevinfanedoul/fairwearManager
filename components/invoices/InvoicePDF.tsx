@@ -398,20 +398,33 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
                   <View style={[styles.cellBase, { width: '30%' }]}>
                     <Text style={styles.textLeft}>{item.designation}</Text>
                   </View>
-                  {sizeColumns.map((col) => (
-                    <View key={col.key} style={[styles.cellBase, { width: sizeWidth }]}>
-                      <Text style={styles.textCenter}>{item[col.key] || '—'}</Text>
-                    </View>
-                  ))}
-                  <View style={[styles.cellBase, { width: '7%' }]}>
-                    <Text style={styles.textCenter}>{quantityLabel(item)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, { width: '14%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.unitPrice, currency)}</Text>
-                  </View>
-                  <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
-                    <Text style={styles.textRight}>{formatCurrency(item.totalPrice, currency)}</Text>
-                  </View>
+                  {item.kind === 'FLAT' ? (
+                    <>
+                      <View style={[styles.cellBase, { width: '51%' }]}>
+                        <Text style={styles.textRight}>Tarif unique</Text>
+                      </View>
+                      <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.flatPrice ?? 0, currency)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      {sizeColumns.map((col) => (
+                        <View key={col.key} style={[styles.cellBase, { width: sizeWidth }]}>
+                          <Text style={styles.textCenter}>{item[col.key] || '—'}</Text>
+                        </View>
+                      ))}
+                      <View style={[styles.cellBase, { width: '7%' }]}>
+                        <Text style={styles.textCenter}>{quantityLabel(item)}</Text>
+                      </View>
+                      <View style={[styles.cellBase, { width: '14%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.unitPrice, currency)}</Text>
+                      </View>
+                      <View style={[styles.cellBase, styles.cellLast, { width: '19%' }]}>
+                        <Text style={styles.textRight}>{formatCurrency(item.totalPrice, currency)}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               ))}
 

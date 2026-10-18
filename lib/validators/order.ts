@@ -35,6 +35,17 @@ export const orderSchema = z
     if (data.type !== 'PRODUCT') return
 
     data.items.forEach((item, index) => {
+      if (item.kind === 'FLAT') {
+        if ((item.flatPrice ?? 0) <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['items', index, 'flatPrice'],
+            message: 'Le prix doit être positif',
+          })
+        }
+        return
+      }
+
       if (item.unitPrice <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

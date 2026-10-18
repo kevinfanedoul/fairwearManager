@@ -394,15 +394,23 @@ export default function OrderDetailPage() {
               </thead>
               <tbody>
                 {order.items?.map((item: OrderItemView) => (
-                  <tr key={item.id} className="border-b last:border-0">
-                    <td className="py-2">{item.designation}</td>
-                    {SIZE_COLUMNS.map((col) => (
-                      <td key={col.key} className="text-center">{item[col.key] || '—'}</td>
-                    ))}
-                    <td className="text-center">{item.quantity}</td>
-                    <td className="text-right"><CurrencyDisplay amount={item.unitPrice} currency={order.currency} /></td>
-                    <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
-                  </tr>
+                  item.kind === 'FLAT' ? (
+                    <tr key={item.id} className="border-b last:border-0">
+                      <td className="py-2">{item.designation}</td>
+                      <td className="py-2 text-right text-slate-500" colSpan={SIZE_COLUMNS.length + 2}>Tarif unique</td>
+                      <td className="py-2 text-right"><CurrencyDisplay amount={item.flatPrice ?? 0} currency={order.currency} /></td>
+                    </tr>
+                  ) : (
+                    <tr key={item.id} className="border-b last:border-0">
+                      <td className="py-2">{item.designation}</td>
+                      {SIZE_COLUMNS.map((col) => (
+                        <td key={col.key} className="text-center">{item[col.key] || '—'}</td>
+                      ))}
+                      <td className="text-center">{item.quantity}</td>
+                      <td className="text-right"><CurrencyDisplay amount={item.unitPrice} currency={order.currency} /></td>
+                      <td className="text-right"><CurrencyDisplay amount={item.totalPrice} currency={order.currency} /></td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>

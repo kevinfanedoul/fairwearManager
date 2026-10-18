@@ -83,11 +83,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { type, items, clientId, currency, fabricSupply, deadline, notes } = parsed.data
   const itemsWithTotals = items.map((item) => {
-    if (type === 'STUDY') {
-      if (item.kind === 'FLAT') {
-        return { ...item, totalPrice: item.flatPrice ?? 0 }
-      }
+    if (item.kind === 'FLAT') {
+      return { ...item, totalPrice: item.flatPrice ?? 0 }
+    }
 
+    if (type === 'STUDY') {
       const gradationTotal = calculateStudyGradationTotal(item)
       const totalPrice = calculateStudyLineTotal({ ...item, gradationTotal })
       return { ...item, gradationTotal, totalPrice }
