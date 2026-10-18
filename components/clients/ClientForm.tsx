@@ -38,7 +38,7 @@ export function ClientForm({ defaultValues, clientId }: ClientFormProps) {
   const form = useForm<ClientInput>({
     resolver: zodResolver(clientSchema) as Resolver<ClientInput>,
     defaultValues: {
-      type: 'B2B',
+      type: 'BRAND',
       country: 'MA',
       ...defaultValues,
     },

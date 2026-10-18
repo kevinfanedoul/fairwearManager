@@ -2,9 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MeasurementsForm } from './MeasurementsForm'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ORDER_STATUS_LABELS, INVOICE_STATUS_LABELS, CLIENT_TYPE_LABELS } from '@/types'
@@ -79,10 +78,9 @@ export function ClientTabs({ clientId }: ClientTabsProps) {
         </div>
       </div>
 
-      <Tabs defaultValue="info">
+      <Tabs defaultValue="orders">
         <TabsList>
           <TabsTrigger value="info">Informations</TabsTrigger>
-          <TabsTrigger value="measurements">Mensurations</TabsTrigger>
           <TabsTrigger value="orders">Commandes ({client.orders?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="invoices">Factures ({client.invoices?.length ?? 0})</TabsTrigger>
         </TabsList>
@@ -96,15 +94,6 @@ export function ClientTabs({ clientId }: ClientTabsProps) {
               {client.city && <div><span className="text-slate-500">Ville</span><p>{client.city}</p></div>}
               {client.ice && <div><span className="text-slate-500">ICE</span><p>{client.ice}</p></div>}
               {client.notes && <div className="col-span-2"><span className="text-slate-500">Notes</span><p>{client.notes}</p></div>}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="measurements">
-          <Card>
-            <CardHeader><CardTitle>Mensurations</CardTitle></CardHeader>
-            <CardContent>
-              <MeasurementsForm clientId={clientId} defaultValues={client.measurements ?? {}} />
             </CardContent>
           </Card>
         </TabsContent>
