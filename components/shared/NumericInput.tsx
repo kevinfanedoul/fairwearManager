@@ -33,6 +33,7 @@ export function NumericInput({ value, onChange, integer = false, ...props }: Num
   useEffect(() => {
     const normalized = value ?? 0
     if (normalized === lastEmittedRef.current) return
+    lastEmittedRef.current = normalized
     setText(toText(normalized))
   }, [value])
 
