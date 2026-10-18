@@ -24,9 +24,9 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { TODO_STATUS_LABELS, type TodoStatus } from '@/types'
-import { Plus, UserRound, MessageSquare, Pencil, Star } from 'lucide-react'
+import { Plus, UserRound, MessageSquare, Pencil, Star, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -72,6 +72,7 @@ function findStatus(board: BoardState, id: UniqueIdentifier): TodoStatus | null 
 export default function TodosPage() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<TodoItem | null>(null)
+  const [deleting, setDeleting] = useState<TodoItem | null>(null)
   const queryClient = useQueryClient()
 
   const { data: todos, isLoading } = useQuery<TodoItem[]>({
@@ -142,6 +143,18 @@ export default function TodosPage() {
       return res.json()
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos'] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erreur')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] })
+      setDeleting(null)
+    },
   })
 
   const assigneeItems = useMemo(() => {
@@ -339,7 +352,7 @@ export default function TodosPage() {
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {KANBAN_COLUMNS.map((col) => (
-              <KanbanColumn key={col.key} col={col} items={byStatus[col.key]} onEdit={openEdit} />
+              <KanbanColumn key={col.key} col={col} items={byStatus[col.key]} onEdit={openEdit} onDelete={setDeleting} />
             ))}
           </div>
         </DndContext>
@@ -347,8 +360,7 @@ export default function TodosPage() {
 
       <Dialog open={editing !== null} onOpenChange={(o) => { if (!o) setEditing(null) }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Modifier la tâche</DialogTitle></DialogHeader>
-          <Form {...editForm}>
+          <DialogHeader><DialogTitle>Modifier la tâche</DialogTitle></DialogHeader>          <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(submitEdit)} className="space-y-4">
               <FormField control={editForm.control} name="title" render={({ field }) => (
                 <FormItem>
@@ -414,14 +426,34 @@ export default function TodosPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={deleting !== null} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Supprimer la tâche</DialogTitle></DialogHeader>
+          <DialogDescription>
+            Voulez-vous vraiment supprimer la tâche « {deleting?.title} » ? Cette action est irréversible.
+          </DialogDescription>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setDeleting(null)}>Annuler</Button>
+            <Button
+              variant="destructive"
+              onClick={() => { if (deleting) deleteMutation.mutate(deleting.id) }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Suppression…' : 'Supprimer'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function KanbanColumn({ col, items, onEdit }: {
+function KanbanColumn({ col, items, onEdit, onDelete }: {
   col: (typeof KANBAN_COLUMNS)[number]
   items: TodoItem[]
   onEdit: (todo: TodoItem) => void
+  onDelete: (todo: TodoItem) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key, data: { type: 'column' } })
   const ids = items.map((t) => t.id)
@@ -438,7 +470,7 @@ function KanbanColumn({ col, items, onEdit }: {
           className={`space-y-2 p-3 min-h-[96px] transition-colors ${isOver ? 'bg-slate-100' : ''}`}
         >
           {items.map((todo) => (
-            <TodoCard key={todo.id} todo={todo} onEdit={onEdit} />
+            <TodoCard key={todo.id} todo={todo} onEdit={onEdit} onDelete={onDelete} />
           ))}
           {items.length === 0 && (
             <p className="py-6 text-center text-xs text-slate-400">Aucune tâche</p>
@@ -449,7 +481,7 @@ function KanbanColumn({ col, items, onEdit }: {
   )
 }
 
-function TodoCard({ todo, onEdit }: { todo: TodoItem; onEdit: (todo: TodoItem) => void }) {
+function TodoCard({ todo, onEdit, onDelete }: { todo: TodoItem; onEdit: (todo: TodoItem) => void; onDelete: (todo: TodoItem) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id })
   return (
     <div
@@ -473,15 +505,26 @@ function TodoCard({ todo, onEdit }: { todo: TodoItem; onEdit: (todo: TodoItem) =
               {todo.title}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => onEdit(todo)}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
-            aria-label="Modifier la tâche"
-          >
-            <Pencil size={14} />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onEdit(todo)}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="shrink-0 text-slate-400 transition-colors hover:text-slate-600"
+              aria-label="Modifier la tâche"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(todo)}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="shrink-0 text-slate-400 transition-colors hover:text-red-600"
+              aria-label="Supprimer la tâche"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
         {todo.assignee && (
           <span
