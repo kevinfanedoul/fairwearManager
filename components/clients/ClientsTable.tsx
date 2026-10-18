@@ -20,6 +20,7 @@ type ClientRow = {
   firstName: string | null
   lastName: string | null
   email: string | null
+  address: string | null
   city: string | null
   _count: { orders: number; invoices: number }
 }
@@ -191,6 +192,7 @@ export function ClientsTable() {
                 <TableHead><SortHeader field="type" label="Type" /></TableHead>
                 <TableHead><SortHeader field="email" label="Email" /></TableHead>
                 <TableHead><SortHeader field="city" label="Ville" /></TableHead>
+                <TableHead>Adresse</TableHead>
                 <TableHead className="text-right"><SortHeader field="orders" label="Commandes" align="right" /></TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -198,7 +200,7 @@ export function ClientsTable() {
             <TableBody>
               {data?.clients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-400 py-8">
+                  <TableCell colSpan={7} className="text-center text-slate-400 py-8">
                     Aucun client trouvé
                   </TableCell>
                 </TableRow>
@@ -218,6 +220,7 @@ export function ClientsTable() {
                   </TableCell>
                   <TableCell className="text-slate-500">{client.email ?? '—'}</TableCell>
                   <TableCell className="text-slate-500">{client.city ?? '—'}</TableCell>
+                  <TableCell className="text-slate-500">{client.address ?? '—'}</TableCell>
                   <TableCell className="text-right text-slate-500">{client._count.orders}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
