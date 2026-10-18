@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { PAYMENT_METHOD_LABELS } from '@/types'
 import type { OrderCurrency } from '@/lib/currencies'
 import { roundCurrencyAmount } from '@/lib/exchange-rates'
+import { NumericInput } from '@/components/shared/NumericInput'
 
 interface PaymentFormProps {
   invoiceId: string
@@ -87,8 +88,7 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceTotalTTC, invoi
             <FormItem>
               <FormLabel>Montant reçu (MAD)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" {...field}
-                  onChange={e => field.onChange(parseFloat(e.target.value))} />
+                <NumericInput value={field.value} onChange={field.onChange} placeholder="0.00" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -99,8 +99,7 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceTotalTTC, invoi
             <FormItem>
               <FormLabel>Montant appliqué à la facture ({invoiceCurrency})</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" {...field}
-                  onChange={e => field.onChange(parseFloat(e.target.value))} />
+                <NumericInput value={field.value} onChange={field.onChange} placeholder="0.00" />
               </FormControl>
               <FormMessage />
             </FormItem>
