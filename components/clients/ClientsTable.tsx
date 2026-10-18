@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CLIENT_TYPE_LABELS } from '@/types'
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Search } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 
 type ClientRow = {
   id: string
@@ -66,6 +66,23 @@ export function ClientsTable() {
     },
   })
 
+  const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erreur lors de la suppression')
+      return res.json()
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  })
+
+  function handleDelete(id: string) {
+    if (window.confirm('Supprimer ce client ? Il ne sera plus visible dans la liste.')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
   const totalPages = useMemo(() => {
     if (!data) return 1
     return Math.max(1, Math.ceil(data.total / data.limit))
@@ -73,7 +90,7 @@ export function ClientsTable() {
 
   function displayName(c: ClientRow) {
     if (c.company) return c.company
-    return [c.firstName, c.lastName].filter(Boolean).join(' ') || '—'
+    return [c.lastName, c.firstName].filter(Boolean).join(' ') || '—'
   }
 
   function toggleSort(field: SortField) {
@@ -175,12 +192,13 @@ export function ClientsTable() {
                 <TableHead><SortHeader field="email" label="Email" /></TableHead>
                 <TableHead><SortHeader field="city" label="Ville" /></TableHead>
                 <TableHead className="text-right"><SortHeader field="orders" label="Commandes" align="right" /></TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data?.clients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-slate-400 py-8">
+                  <TableCell colSpan={6} className="text-center text-slate-400 py-8">
                     Aucun client trouvé
                   </TableCell>
                 </TableRow>
@@ -201,6 +219,29 @@ export function ClientsTable() {
                   <TableCell className="text-slate-500">{client.email ?? '—'}</TableCell>
                   <TableCell className="text-slate-500">{client.city ?? '—'}</TableCell>
                   <TableCell className="text-right text-slate-500">{client._count.orders}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Link href={`/clients/${client.id}`}>
+                        <Button variant="ghost" size="icon-sm" title="Voir">
+                          <Eye size={14} />
+                        </Button>
+                      </Link>
+                      <Link href={`/clients/${client.id}/edit`}>
+                        <Button variant="ghost" size="icon-sm" title="Modifier">
+                          <Pencil size={14} />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Supprimer"
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleDelete(client.id)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
