@@ -9,7 +9,8 @@ export const createInvoiceSchema = z.object({
 
 export const paymentSchema = z.object({
   date: z.string().datetime(),
-  amount: z.number().positive('Le montant doit être positif'),
+  amount: z.number().positive('Le montant reçu doit être positif'),
+  appliedAmount: z.number().positive('Le montant appliqué doit être positif'),
   method: z.enum(['CASH', 'BANK_TRANSFER', 'CHECK', 'MOBILE_PAYMENT']),
   reference: z.string().optional(),
   notes: z.string().optional(),

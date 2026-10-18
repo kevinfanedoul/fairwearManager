@@ -188,7 +188,7 @@ export default function InvoiceDetailPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Enregistrer un paiement</DialogTitle></DialogHeader>
-                <PaymentForm invoiceId={id} remainingAmount={remaining} invoiceCurrency={currency} onSuccess={() => setPaymentOpen(false)} />
+                <PaymentForm invoiceId={id} remainingAmount={remaining} invoiceTotalTTC={Number(invoice.totalTTC)} invoiceCurrency={currency} onSuccess={() => setPaymentOpen(false)} />
               </DialogContent>
             </Dialog>
           )}

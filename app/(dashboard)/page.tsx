@@ -42,9 +42,6 @@ export default function DashboardPage() {
               <FileText size={14} className="text-orange-500" />Factures en attente
             </div>
             <p className="text-2xl font-bold">{kpis?.pendingInvoicesCount ?? 0}</p>
-            <p className="text-sm text-slate-500 mt-1">
-              <CurrencyDisplay amount={kpis?.pendingInvoicesTotal ?? 0} />
-            </p>
           </CardContent>
         </Card>
         <Card>

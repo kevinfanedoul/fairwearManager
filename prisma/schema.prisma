@@ -354,13 +354,6 @@ enum CashEntryType {
   EXPENSE
 }
 
-model ExchangeRate {
-  currency    String   @id
-  rateToMad   Decimal  @db.Decimal(12, 6)
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
-}
-
 model Supplier {
   id        String   @id @default(uuid())
   name      String

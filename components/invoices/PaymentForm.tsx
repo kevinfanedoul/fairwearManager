@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { paymentSchema, type PaymentInput } from '@/lib/validators/invoice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,48 +10,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { PAYMENT_METHOD_LABELS } from '@/types'
 import type { OrderCurrency } from '@/lib/currencies'
-import { convertMadToInvoiceCurrency, roundCurrencyAmount } from '@/lib/exchange-rates'
+import { roundCurrencyAmount } from '@/lib/exchange-rates'
 
 interface PaymentFormProps {
   invoiceId: string
   remainingAmount: number
+  invoiceTotalTTC: number
   invoiceCurrency: OrderCurrency
   onSuccess?: () => void
 }
 
-function buildDefaultValues(amount: number): PaymentInput {
+const PERCENTAGE_PRESETS = [25, 50, 75, 100]
+
+function buildDefaultValues(remainingAmount: number, invoiceCurrency: OrderCurrency): PaymentInput {
+  const appliedAmount = roundCurrencyAmount(remainingAmount)
   return {
     date: new Date().toISOString(),
-    amount,
+    amount: invoiceCurrency === 'MAD' ? appliedAmount : 0,
+    appliedAmount,
     method: 'CASH',
     reference: '',
   }
 }
 
-export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuccess }: PaymentFormProps) {
+export function PaymentForm({ invoiceId, remainingAmount, invoiceTotalTTC, invoiceCurrency, onSuccess }: PaymentFormProps) {
   const queryClient = useQueryClient()
-  const { data: ratesData } = useQuery<{ rates: Record<OrderCurrency, number> }>({
-    queryKey: ['exchange-rates'],
-    queryFn: async () => {
-      const res = await fetch('/api/settings/exchange-rates')
-      if (!res.ok) throw new Error('Erreur taux de change')
-      return res.json() as Promise<{ rates: Record<OrderCurrency, number> }>
-    },
-  })
-
-  const currentRate = ratesData?.rates?.[invoiceCurrency] ?? 1
-  const suggestedMadAmount = roundCurrencyAmount(
-    invoiceCurrency === 'MAD' ? remainingAmount : remainingAmount * currentRate
-  )
 
   const form = useForm<PaymentInput>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: buildDefaultValues(suggestedMadAmount),
+    defaultValues: buildDefaultValues(remainingAmount, invoiceCurrency),
   })
 
-  useEffect(() => {
-    form.setValue('amount', suggestedMadAmount, { shouldDirty: false, shouldValidate: true })
-  }, [form, suggestedMadAmount])
+  const amount = Number(useWatch({ control: form.control, name: 'amount' }) ?? 0)
+  const appliedAmount = Number(useWatch({ control: form.control, name: 'appliedAmount' }) ?? 0)
+  const exchangeRate = appliedAmount > 0 ? amount / appliedAmount : 0
 
   async function onSubmit(data: PaymentInput) {
     const res = await fetch(`/api/invoices/${invoiceId}/payments`, {
@@ -66,16 +57,17 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuc
     }
     queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] })
     queryClient.invalidateQueries({ queryKey: ['invoices'] })
-    form.reset(buildDefaultValues(suggestedMadAmount))
+    form.reset(buildDefaultValues(remainingAmount, invoiceCurrency))
     onSuccess?.()
+  }
+
+  function applyPercentage(percent: number) {
+    form.setValue('appliedAmount', roundCurrencyAmount((invoiceTotalTTC * percent) / 100), { shouldValidate: true })
   }
 
   function paymentMethodLabel(method: PaymentInput['method']) {
     return PAYMENT_METHOD_LABELS[method]
   }
-
-  const enteredAmountMad = Number(useWatch({ control: form.control, name: 'amount' }) ?? 0)
-  const appliedAmount = convertMadToInvoiceCurrency(enteredAmountMad, invoiceCurrency, currentRate)
 
   return (
     <Form {...form}>
@@ -93,7 +85,7 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuc
           )} />
           <FormField control={form.control} name="amount" render={({ field }) => (
             <FormItem>
-              <FormLabel>Montant (MAD)</FormLabel>
+              <FormLabel>Montant reçu (MAD)</FormLabel>
               <FormControl>
                 <Input type="number" step="0.01" {...field}
                   onChange={e => field.onChange(parseFloat(e.target.value))} />
@@ -103,6 +95,16 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuc
           )} />
         </div>
         <div className="grid grid-cols-2 gap-4">
+          <FormField control={form.control} name="appliedAmount" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Montant appliqué à la facture ({invoiceCurrency})</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" {...field}
+                  onChange={e => field.onChange(parseFloat(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
           <FormField control={form.control} name="method" render={({ field }) => (
             <FormItem>
               <FormLabel>Mode de règlement</FormLabel>
@@ -121,6 +123,24 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuc
               <FormMessage />
             </FormItem>
           )} />
+        </div>
+        {invoiceCurrency !== 'MAD' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-slate-500">Appliquer un pourcentage de la facture :</span>
+            {PERCENTAGE_PRESETS.map((percent) => (
+              <Button
+                key={percent}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => applyPercentage(percent)}
+              >
+                {percent} %
+              </Button>
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-4">
           <FormField control={form.control} name="reference" render={({ field }) => (
             <FormItem>
               <FormLabel>Référence (virement…)</FormLabel>
@@ -130,11 +150,17 @@ export function PaymentForm({ invoiceId, remainingAmount, invoiceCurrency, onSuc
           )} />
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <p>
-            Taux appliqué: <span className="font-medium">1 {invoiceCurrency} = {currentRate.toFixed(4)} MAD</span>
-          </p>
+          {invoiceCurrency === 'MAD' ? (
+            <p>
+              Facture en MAD : le montant reçu est appliqué tel quel (taux 1 MAD = 1 MAD).
+            </p>
+          ) : (
+            <p>
+              Taux de change : <span className="font-medium">1 {invoiceCurrency} = {exchangeRate.toFixed(4)} MAD</span>
+            </p>
+          )}
           <p className="mt-1">
-            Montant appliqué à la facture: <span className="font-medium">{appliedAmount.toFixed(2)} {invoiceCurrency}</span>
+            Montant appliqué à la facture : <span className="font-medium">{appliedAmount.toFixed(2)} {invoiceCurrency}</span>
           </p>
         </div>
         {form.formState.errors.root && (

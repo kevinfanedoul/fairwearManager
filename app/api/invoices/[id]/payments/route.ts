@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createCashEntry } from '@/lib/treasury/create-cash-entry'
-import { getExchangeRateMap } from '@/lib/exchange-rate-store'
-import { convertMadToInvoiceCurrency, roundCurrencyAmount } from '@/lib/exchange-rates'
+import { roundCurrencyAmount, roundExchangeRate } from '@/lib/exchange-rates'
 import { paymentSchema } from '@/lib/validators/invoice'
 import { createClient } from '@/lib/supabase/server'
-import type { OrderCurrency } from '@/lib/currencies'
 import { deriveInvoiceStatus } from '@/lib/calculations/invoice-status'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,14 +20,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { payments: true, creditNotes: true, client: true, order: { select: { id: true, currency: true } } },
+    include: { payments: true, creditNotes: true, client: true, order: { select: { id: true } } },
   })
   if (!invoice) return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
 
-  const invoiceCurrency = (invoice.order?.currency ?? 'MAD') as OrderCurrency
-  const exchangeRates = await getExchangeRateMap()
-  const exchangeRate = exchangeRates[invoiceCurrency]
-  const appliedAmount = convertMadToInvoiceCurrency(parsed.data.amount, invoiceCurrency, exchangeRate)
+  const amount = roundCurrencyAmount(parsed.data.amount)
+  const appliedAmount = roundCurrencyAmount(parsed.data.appliedAmount)
+  const exchangeRate = roundExchangeRate(amount / appliedAmount)
   const totalPaid = invoice.payments.reduce((sum: number, p: { appliedAmount: unknown; amount: unknown }) => {
     const paidAmount = p.appliedAmount == null ? Number(p.amount) : Number(p.appliedAmount)
     return sum + paidAmount
@@ -44,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       data: {
         invoiceId: id,
         date: new Date(parsed.data.date),
-        amount: parsed.data.amount,
+        amount,
         appliedAmount,
         currency: 'MAD',
         exchangeRate,
@@ -66,7 +63,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await createCashEntry(tx, {
       date: new Date(parsed.data.date),
       label: `Paiement facture ${invoice.number} - ${invoice.client.company || [invoice.client.firstName, invoice.client.lastName].filter(Boolean).join(' ') || 'Client sans nom'}`,
-      amount: parsed.data.amount,
+      amount,
       type: 'INCOME',
       category: 'Encaissement client',
       reference: parsed.data.reference || invoice.number,

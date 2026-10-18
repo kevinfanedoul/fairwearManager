@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
-import { getExchangeRateMap } from '@/lib/exchange-rate-store'
-import type { OrderCurrency } from '@/lib/currencies'
 
 export async function GET() {
   const supabase = await createClient()
@@ -17,7 +15,6 @@ export async function GET() {
   const overdueThreshold = subDays(now, 30)
 
   const [
-    exchangeRates,
     monthPayments,
     pendingInvoices,
     activeOrders,
@@ -26,7 +23,6 @@ export async function GET() {
     recentOrders,
     activeTodos,
   ] = await Promise.all([
-    getExchangeRateMap(),
     prisma.payment.aggregate({
       where: { date: { gte: monthStart, lte: monthEnd } },
       _sum: { amount: true },
@@ -68,17 +64,10 @@ export async function GET() {
   ])
 
   const caMonth = Number(monthPayments._sum.amount ?? 0)
-  const pendingTotal = pendingInvoices.reduce((sum: number, inv: { totalTTC: unknown, order: { currency: string } | null, payments: { amount: unknown; appliedAmount: unknown }[] }) => {
-    const paid = inv.payments.reduce((s: number, p: { amount: unknown; appliedAmount: unknown }) => s + Number(p.appliedAmount ?? p.amount), 0)
-    const remaining = Math.max(0, Number(inv.totalTTC) - paid)
-    const currency = (inv.order?.currency ?? 'MAD') as OrderCurrency
-    return sum + remaining * exchangeRates[currency]
-  }, 0)
 
   return NextResponse.json({
     caMonth,
     pendingInvoicesCount: pendingInvoices.length,
-    pendingInvoicesTotal: pendingTotal,
     activeOrdersCount: activeOrders,
     activeTodosCount: activeTodos,
     upcomingDeadlines,
