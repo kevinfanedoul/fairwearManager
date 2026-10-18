@@ -1,14 +1,5 @@
 import { z } from 'zod'
 
-export const cashEntrySchema = z.object({
-  date: z.string().datetime(),
-  label: z.string().min(1, 'Libellé requis'),
-  amount: z.number().positive('Le montant doit être positif'),
-  type: z.enum(['INCOME', 'EXPENSE']),
-  category: z.string().optional(),
-  reference: z.string().optional(),
-})
-
 export const supplierSchema = z.object({
   name: z.string().min(1, 'Nom requis'),
   type: z.string().optional(),
@@ -32,6 +23,5 @@ export const supplierPurchaseSchema = z.object({
   notes: z.string().optional(),
 })
 
-export type CashEntryInput = z.infer<typeof cashEntrySchema>
 export type SupplierInput = z.infer<typeof supplierSchema>
 export type SupplierPurchaseInput = z.infer<typeof supplierPurchaseSchema>

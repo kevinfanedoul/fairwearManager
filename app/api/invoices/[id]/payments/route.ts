@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createCashEntry } from '@/lib/treasury/create-cash-entry'
 import { roundCurrencyAmount, roundExchangeRate } from '@/lib/exchange-rates'
 import { paymentSchema } from '@/lib/validators/invoice'
 import { createClient } from '@/lib/supabase/server'
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { payments: true, creditNotes: true, client: true, order: { select: { id: true } } },
+    include: { payments: true, creditNotes: true, order: { select: { id: true } } },
   })
   if (!invoice) return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
 
@@ -59,15 +58,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         data: { status: newStatus === 'PAID' ? 'PAID' : 'INVOICED' },
       })
     }
-
-    await createCashEntry(tx, {
-      date: new Date(parsed.data.date),
-      label: `Paiement facture ${invoice.number} - ${invoice.client.company || [invoice.client.firstName, invoice.client.lastName].filter(Boolean).join(' ') || 'Client sans nom'}`,
-      amount,
-      type: 'INCOME',
-      category: 'Encaissement client',
-      reference: parsed.data.reference || invoice.number,
-    })
 
     return createdPayment
   })
