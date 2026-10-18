@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,13 +11,17 @@ import { ORDER_STATUS_LABELS, INVOICE_STATUS_LABELS, CLIENT_TYPE_LABELS } from '
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Trash2 } from 'lucide-react'
 
 interface ClientTabsProps {
   clientId: string
 }
 
 export function ClientTabs({ clientId }: ClientTabsProps) {
+  const router = useRouter()
+  const queryClient = useQueryClient()
+
   const { data: client, isLoading } = useQuery({
     queryKey: ['client', clientId],
     queryFn: async () => {
@@ -26,6 +30,25 @@ export function ClientTabs({ clientId }: ClientTabsProps) {
       return res.json()
     },
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/clients/${clientId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erreur lors de la suppression')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
+      queryClient.invalidateQueries({ queryKey: ['client', clientId] })
+      router.push('/clients')
+    },
+  })
+
+  function handleDelete() {
+    if (window.confirm('Supprimer ce client ? Il ne sera plus visible dans la liste.')) {
+      deleteMutation.mutate()
+    }
+  }
 
   if (isLoading) return <div className="text-slate-500">Chargement…</div>
   if (!client) return <div className="text-red-600">Client introuvable</div>
@@ -49,6 +72,10 @@ export function ClientTabs({ clientId }: ClientTabsProps) {
           <Link href={`/clients/${clientId}/edit`}>
             <Button variant="outline">Modifier</Button>
           </Link>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+            <Trash2 size={16} className="mr-2" />
+            {deleteMutation.isPending ? 'Suppression…' : 'Supprimer'}
+          </Button>
         </div>
       </div>
 
